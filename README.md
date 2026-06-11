@@ -3,6 +3,10 @@
 A generational colony simulator with roguelike and incremental features, playable in any
 modern browser (Safari on iPhone/iPad, anything on Windows).
 
+> This repo also ships **[NUMEN](NUMEN.md)**, a minimal-surface incremental game, at
+> **https://tezzuk.github.io/Sim/numen/** — a single dependency-free HTML file in
+> `public/numen/`, deployed alongside Lineage. See [NUMEN.md](NUMEN.md) for the design.
+
 You are not the god-hand: **you are one colonist** in a domed science outpost on an
 exoplanet. Around you, every colonist is simulated — born, schooled, employed, partnered,
 aged, and eventually buried. When *your* colonist dies, you continue as their child or

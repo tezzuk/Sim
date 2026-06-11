@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [claude/intelligent-fermi-gb3btk]
+    branches: [claude/intelligent-fermi-gb3btk, claude/nice-cori-0h8hlj]
   workflow_dispatch:
 
 permissions:

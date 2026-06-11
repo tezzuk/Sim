@@ -1,0 +1,998 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#07070b" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='2' y='13' font-size='13' fill='%237adfff'>N</text></svg>" />
+<title>NUMEN</title>
+<style>
+  :root {
+    --bg: #07070b;
+    --fg: #e8e8f0;
+    --dim: #5a5a6e;
+    --accent: #7adfff;
+    --gold: #ffcc66;
+    --hot: #ff7a5c;
+    --panel: #0e0e16;
+    --line: #1c1c2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  }
+
+  #field { position: fixed; inset: 0; cursor: pointer; touch-action: manipulation; }
+  #field.shake { animation: shake .09s linear; }
+  @keyframes shake {
+    25% { transform: translate(2px, -2px); }
+    50% { transform: translate(-2px, 1px); }
+    75% { transform: translate(1px, 2px); }
+  }
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  #title {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); left: 18px;
+    font-size: 11px; letter-spacing: .5em; color: var(--dim); opacity: .7; pointer-events: none;
+  }
+
+  #heat { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: transparent; pointer-events: none; }
+  #heatfill {
+    display: block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--hot));
+    transition: width .12s linear; opacity: .85;
+  }
+  #heat.od #heatfill { width: 100% !important; animation: odpulse .35s linear infinite alternate; background: var(--hot); }
+  #heat.cd #heatfill { width: 100% !important; background: #2a3a55; animation: none; }
+  @keyframes odpulse { from { opacity: .5; } to { opacity: 1; } }
+
+  #stack {
+    position: absolute; left: 0; right: 0; top: 38%; transform: translateY(-50%);
+    text-align: center; pointer-events: none;
+  }
+  #big {
+    font-size: clamp(40px, 11vw, 96px); font-weight: 700; letter-spacing: .02em;
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+    text-shadow: 0 0 28px rgba(122, 223, 255, .12);
+    transition: text-shadow .3s;
+  }
+  #big.bump { animation: bump .12s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.035); } 100% { transform: scale(1); } }
+  body.od #big { text-shadow: 0 0 36px rgba(255, 122, 92, .55); }
+  #big.milestone { animation: milestone .6s ease-out; }
+  @keyframes milestone {
+    0% { text-shadow: 0 0 60px rgba(122, 223, 255, .9); }
+    100% { text-shadow: 0 0 28px rgba(122, 223, 255, .12); }
+  }
+  #rate { margin-top: 10px; font-size: clamp(12px, 2.4vw, 15px); color: var(--dim); min-height: 1.2em; }
+  #combo {
+    position: absolute; left: 50%; top: calc(38% - clamp(60px, 12vw, 110px)); transform: translate(60px, -50%);
+    font-size: 16px; color: var(--accent); opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  #hint {
+    margin-top: 26px; font-size: 12px; letter-spacing: .35em; color: var(--dim);
+    animation: hintpulse 1.6s ease-in-out infinite; transition: opacity .8s;
+  }
+  @keyframes hintpulse { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
+
+  #dock {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px));
+    display: flex; gap: 14px;
+  }
+  .dockbtn {
+    width: 52px; height: 52px; border: 1px solid var(--line); border-radius: 14px;
+    background: rgba(14, 14, 22, .8); color: var(--dim); font-size: 21px;
+    font-family: inherit; cursor: pointer; position: relative;
+    display: none; align-items: center; justify-content: center;
+    transition: color .2s, border-color .2s;
+  }
+  .dockbtn.show { display: flex; animation: dockin .6s ease-out; }
+  @keyframes dockin { 0% { opacity: 0; transform: translateY(14px); } 60% { opacity: 1; } 100% { transform: none; } }
+  .dockbtn:hover, .dockbtn.open { color: var(--accent); border-color: var(--accent); }
+  .dockbtn .dot {
+    position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); display: none; box-shadow: 0 0 8px var(--accent);
+  }
+  .dockbtn.alert .dot { display: block; }
+
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw);
+    background: var(--panel); border-left: 1px solid var(--line);
+    transform: translateX(102%); transition: transform .22s ease-out;
+    display: flex; flex-direction: column; z-index: 10;
+  }
+  #panel.open { transform: none; }
+  @media (max-width: 560px) {
+    #panel {
+      top: auto; left: 0; width: 100%; height: 72vh;
+      border-left: none; border-top: 1px solid var(--line);
+      border-radius: 16px 16px 0 0; transform: translateY(103%);
+    }
+    #panel.open { transform: none; }
+  }
+  #phead {
+    padding: 16px 18px; font-size: 12px; letter-spacing: .3em; color: var(--accent);
+    border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;
+  }
+  #pclose { background: none; border: none; color: var(--dim); font-size: 18px; cursor: pointer; font-family: inherit; padding: 2px 8px; }
+  #pbody { flex: 1; overflow-y: auto; padding: 14px 16px calc(env(safe-area-inset-bottom) + 20px); font-size: 13px; }
+
+  .row {
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .row .l { flex: 1; min-width: 0; }
+  .row .name { font-size: 13px; color: var(--fg); }
+  .row .sub { font-size: 11px; color: var(--dim); margin-top: 3px; }
+  .row .bar { height: 2px; background: var(--line); border-radius: 1px; margin-top: 7px; overflow: hidden; }
+  .row .bar i { display: block; height: 100%; background: var(--accent); }
+  button.buy {
+    font-family: inherit; font-size: 12px; padding: 9px 12px; min-width: 86px;
+    background: transparent; border: 1px solid var(--line); color: var(--dim);
+    border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  button.buy.can { border-color: var(--accent); color: var(--accent); }
+  button.buy.can:active { background: rgba(122, 223, 255, .12); }
+  button.buy:disabled { opacity: .45; cursor: default; }
+  .teaser { text-align: center; color: var(--dim); font-size: 11px; letter-spacing: .2em; padding: 12px 0 6px; opacity: .7; }
+
+  .chip {
+    font-family: inherit; font-size: 11px; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--line); background: transparent; color: var(--dim); cursor: pointer;
+  }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  .chips { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+
+  .bigbtn {
+    width: 100%; font-family: inherit; font-size: 14px; letter-spacing: .15em; padding: 14px;
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 10px; cursor: pointer; margin: 10px 0;
+  }
+  .bigbtn:disabled { border-color: var(--line); color: var(--dim); cursor: default; }
+  .bigbtn.danger { border-color: var(--hot); color: var(--hot); }
+  .note { color: var(--dim); font-size: 11.5px; line-height: 1.6; margin: 8px 0; }
+  .stat { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; color: var(--dim); }
+  .stat b { color: var(--fg); font-weight: 500; }
+  h4 { font-size: 11px; letter-spacing: .3em; color: var(--accent); margin: 18px 0 8px; font-weight: 500; }
+  .glyph { cursor: pointer; }
+  .glyph.owned { border-color: rgba(122, 223, 255, .5); }
+  .glyph.owned .name { color: var(--accent); }
+  .glyph.locked { opacity: .45; }
+  .achgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ach {
+    font-size: 10.5px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line); color: var(--dim);
+  }
+  .ach.got { border-color: var(--gold); color: var(--gold); }
+
+  #toasts {
+    position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 30; pointer-events: none; width: min(420px, 92vw);
+  }
+  .toast {
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 10px 16px; font-size: 12px; text-align: center;
+    animation: toastin .3s ease-out; box-shadow: 0 4px 30px rgba(0, 0, 0, .6);
+  }
+  .toast.gold { border-color: var(--gold); color: var(--gold); }
+  .toast.fade { opacity: 0; transition: opacity .5s; }
+  @keyframes toastin { from { opacity: 0; transform: translateY(-10px); } }
+
+  #win {
+    position: fixed; inset: 0; background: rgba(7, 7, 11, .96); z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 30px;
+  }
+  #win h1 { font-size: clamp(22px, 5vw, 42px); letter-spacing: .2em; color: var(--gold); font-weight: 600; }
+  #win p { color: var(--dim); margin: 18px 0; font-size: 13px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div id="field">
+  <canvas id="fx"></canvas>
+  <div id="title">N U M E N</div>
+  <div id="heat"><i id="heatfill"></i></div>
+  <div id="stack">
+    <div id="big">0</div>
+    <div id="rate"></div>
+    <div id="hint">T A P</div>
+  </div>
+  <div id="combo"></div>
+  <div id="dock">
+    <button class="dockbtn" id="d-echo" data-tab="echo">◬<i class="dot"></i></button>
+    <button class="dockbtn" id="d-flux" data-tab="flux">✦<i class="dot"></i></button>
+    <button class="dockbtn" id="d-glyph" data-tab="glyph">⌬<i class="dot"></i></button>
+    <button class="dockbtn" id="d-stat" data-tab="stat">☰<i class="dot"></i></button>
+  </div>
+</div>
+
+<aside id="panel">
+  <div id="phead"><span id="ptitle"></span><button id="pclose">✕</button></div>
+  <div id="pbody"></div>
+</aside>
+
+<div id="toasts"></div>
+<div id="win" hidden></div>
+
+<script>
+'use strict';
+/* ============================================================
+   NUMEN — a number wants to grow.
+   Single-file incremental. Minimal surface, layered economy:
+   click engine (crit/combo/heat-overdrive) → echo cascade
+   (8 tiers, each producing the one below) → resonance
+   (hold-vs-spend tension) → flux prestige + glyph synergies
+   → singularity collapse (exponent layer + automation).
+   ============================================================ */
+
+// ---------- balance tables ----------
+const ECHO_NAMES = ['Whisper', 'Murmur', 'Chant', 'Chorus', 'Hymn', 'Anthem', 'Requiem', 'Apotheosis'];
+const ECHO_COST  = [10, 100, 1e4, 1e6, 1e9, 1e13, 1e18, 1e24];
+const ECHO_GROW  = [1.12, 1.14, 1.16, 1.18, 1.21, 1.24, 1.28, 1.33];
+const ECHO_RATE  = [1, 0.5, 0.3, 0.2, 0.15, 0.1, 0.08, 0.05];
+const MILE_BASE = 25, MILE_CURVE = 4 / 3; // k-th milestone at 25·k^(4/3) bought
+
+const FLUX_BASE = 1e10;      // totalRun for first flux point
+const FLUX_EXP  = 0.5;
+const CORE_AT   = 1e50;      // lifetime total for first core
+const WIN_AT    = 1e300;
+
+const GLYPHS = [
+  { id: 'palm',    cost: 1,   req: null,      name: 'Resonant Palm',  desc: 'Taps carry 10% of your /s instead of 5%.' },
+  { id: 'grip',    cost: 1,   req: null,      name: 'Echo Grip',      desc: 'Whispers strengthen taps: ×(1+√Whispers/20).' },
+  { id: 'pyro',    cost: 2,   req: null,      name: 'Pyrophilia',     desc: 'Heat builds 50% faster and decays 30% slower.' },
+  { id: 'chain',   cost: 2,   req: null,      name: 'Chainspeak',     desc: 'Combo cap ×2 → ×3, window +0.5s.' },
+  { id: 'lattice', cost: 4,   req: 'grip',    name: 'Crit Lattice',   desc: 'Crit chance 5% → 9%.' },
+  { id: 'vein',    cost: 6,   req: 'lattice', name: 'Gold Vein',      desc: 'Crits ×8 → ×14.' },
+  { id: 'feed',    cost: 10,  req: 'grip',    name: 'Feedback Loop',  desc: 'Tap power feeds back into Whisper output.' },
+  { id: 'mile',    cost: 12,  req: null,      name: 'Deep Milestones', desc: 'Echo milestones give ×3 instead of ×2.' },
+  { id: 'ember',   cost: 20,  req: 'pyro',    name: 'Ember Choir',    desc: 'Overdrive also ×3 all echo production.' },
+  { id: 'after',   cost: 20,  req: 'chain',   name: 'Aftershock',     desc: 'Combo decays slowly instead of breaking.' },
+  { id: 'siphon',  cost: 30,  req: null,      name: 'Flux Siphon',    desc: '+35% flux gain.' },
+  { id: 'deep',    cost: 40,  req: null,      name: 'Deep Resonance', desc: 'Resonance (held-number boost) doubled.' },
+  { id: 'head',    cost: 60,  req: null,      name: 'Headstart',      desc: 'After flux, begin with 3 of the first four echoes.' },
+  { id: 'super',   cost: 100, req: 'vein',    name: 'Supercrit',      desc: 'Crits chain: 20% to redouble, up to 3 times.' },
+  { id: 'seer',    cost: 150, req: null,      name: 'Overseer',       desc: 'Auto-buys the first four echo tiers.' },
+  { id: 'trans',   cost: 250, req: 'deep',    name: 'Transcendence',  desc: 'Resonance also multiplies taps.' },
+];
+
+const ACHS = [
+  { id: 'spark',   name: 'First Spark',      test: () => S.clicks >= 1 },
+  { id: 'hundred', name: 'A Hundred',        test: () => S.totalAll >= 100 },
+  { id: 'voice',   name: 'First Voice',      test: () => S.echoes[0].bought >= 1 },
+  { id: 'mile1',   name: 'Resonant 25',      test: () => S.echoes[0].bought >= MILE_BASE },
+  { id: 'crit',    name: 'Critical',         test: () => S.crits >= 1 },
+  { id: 'combo',   name: 'Full Chain',       test: () => S.combo >= G.comboCap - 1e-9 && S.combo > 0 },
+  { id: 'od1',     name: 'Overdrive',        test: () => S.odCount >= 1 },
+  { id: 'e6',      name: 'Million',          test: () => S.points >= 1e6 },
+  { id: 'quartet', name: 'Quartet',          test: () => S.echoes.slice(0, 4).every(e => e.bought >= 1) },
+  { id: 'e10',     name: 'Ten Billion',      test: () => S.points >= 1e10 },
+  { id: 'flux1',   name: 'First Flux',       test: () => S.fluxCount >= 1 },
+  { id: 'glyph1',  name: 'First Glyph',      test: () => Object.keys(S.glyphs).length >= 1 },
+  { id: 'e20',     name: '1e20',             test: () => S.totalAll >= 1e20 },
+  { id: 'apo',     name: 'Apotheosis',       test: () => S.echoes[7].bought >= 1 },
+  { id: 'flux50',  name: 'Flux ×50',         test: () => S.fluxTotal >= 50 },
+  { id: 'od10',    name: 'Pyromaniac',       test: () => S.odCount >= 10 },
+  { id: 'clicks',  name: '2000 Taps',        test: () => S.clicks >= 2000 },
+  { id: 'silent',  name: 'Untouched',        test: () => S.runClicks === 0 && S.totalRun >= 1e12 },
+  { id: 'e50',     name: '1e50',             test: () => S.totalAll >= 1e50 },
+  { id: 'core1',   name: 'Collapse',         test: () => S.cores >= 1 },
+  { id: 'e100',    name: 'Googol',           test: () => S.points >= 1e100 },
+  { id: 'e200',    name: '1e200',            test: () => S.points >= 1e200 },
+  { id: 'end',     name: 'Everything',       test: () => S.winSeen },
+];
+
+// ---------- state ----------
+const SAVE_KEY = 'numen-save';
+function freshState() {
+  return {
+    v: 1,
+    points: 0, totalRun: 0, totalAll: 0,
+    clicks: 0, runClicks: 0, crits: 0,
+    echoes: ECHO_NAMES.map(() => ({ n: 0, bought: 0 })),
+    buyMode: '1',
+    heat: 0, combo: 0, lastClickAt: 0,
+    odUntil: 0, cdUntil: 0, odCount: 0,
+    flux: 0, fluxTotal: 0, fluxCount: 0,
+    glyphs: {},
+    cores: 0, collapses: 0,
+    autobuy: true, autoflux: false,
+    ach: {},
+    sound: true,
+    winSeen: false,
+    started: Date.now(), lastTick: Date.now(),
+  };
+}
+let S = freshState();
+let G = {};            // derived values, recomputed every tick
+let cpPrev = 1;        // last tick's tap power (breaks feed↔ps circularity)
+
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    const f = freshState();
+    for (const k of Object.keys(f)) if (k in d) f[k] = d[k];
+    f.echoes = ECHO_NAMES.map((_, i) => ({
+      n: d.echoes?.[i]?.n ?? 0, bought: d.echoes?.[i]?.bought ?? 0,
+    }));
+    S = f;
+  } catch (e) { /* corrupted save: start fresh */ }
+}
+function save() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {}
+}
+
+// ---------- formatting ----------
+const SUFF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  if (n < 0) return '-' + fmt(-n);
+  if (n < 1000) return n >= 100 || n % 1 === 0 ? String(Math.floor(n)) : n.toFixed(1);
+  if (n < 1e6) return Math.floor(n).toLocaleString('en-US');
+  const e = Math.floor(Math.log10(n));
+  const t = Math.floor(e / 3);
+  if (t < SUFF.length) {
+    const m = n / Math.pow(10, t * 3);
+    return (m >= 100 ? m.toFixed(0) : m >= 10 ? m.toFixed(1) : m.toFixed(2)) + SUFF[t];
+  }
+  return (n / Math.pow(10, e)).toFixed(2) + 'e' + e;
+}
+function fmtTime(s) {
+  s = Math.floor(s);
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+}
+
+// ---------- derived economy ----------
+function hasG(id) { return !!S.glyphs[id]; }
+function achMult() { return Math.pow(1.04, Object.keys(S.ach).length); }
+function fluxMult() {
+  const F = S.fluxTotal;
+  const eff = F <= 100 ? F : 100 + Math.pow(F - 100, 0.75); // softcap past 100
+  return Math.pow(1 + 0.4 * eff, 1.1);
+}
+function fluxGainAt(totalRun) {
+  let g = Math.pow(Math.max(0, totalRun) / FLUX_BASE, FLUX_EXP)
+    * (hasG('siphon') ? 1.35 : 1) * (1 + 0.25 * S.cores);
+  if (g > 1e4) { // logarithmic tail: the game spans ~300 OoM, polynomials can't hold it
+    const L = Math.log10(g / 1e4);
+    g = 1e4 * (1 + L + L * L * L / 4);
+  }
+  return Math.floor(g);
+}
+function nextFluxAt(pending) { // numeric inversion of fluxGainAt for the UI
+  let lo = 9, hi = 310;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (fluxGainAt(Math.pow(10, mid)) >= pending + 1) hi = mid; else lo = mid;
+  }
+  return Math.pow(10, hi);
+}
+function coresAt(totalAll) {
+  if (totalAll < CORE_AT) return 0;
+  const L = Math.min(308, Math.log10(totalAll)); // saturates: no Infinity cores
+  return Math.floor(Math.pow((L - 50) / 5, 0.8)) + 1;
+}
+function resonance() {
+  return 1 + (hasG('deep') ? 0.04 : 0.02) * Math.log10(1 + Math.max(0, S.points));
+}
+function mileCount(bought) { return Math.floor(Math.pow(bought / MILE_BASE, 1 / MILE_CURVE)); }
+function mileNextAt(k) { return Math.ceil(MILE_BASE * Math.pow(k + 1, MILE_CURVE)); }
+function milestoneMult(i) {
+  return Math.pow(hasG('mile') ? 3 : 2, mileCount(S.echoes[i].bought));
+}
+function echoCost(i, bought) {
+  let c = ECHO_COST[i] * Math.pow(ECHO_GROW[i], bought);
+  if (bought > 100) c *= Math.pow(1.05, Math.pow(bought - 100, 1.25)); // late-buy surcharge
+  return c;
+}
+
+function compute() {
+  const now = performance.now();
+  const od = now < S.odUntil;
+  const global = fluxMult() * achMult();
+  const ember = od && hasG('ember') ? 3 : 1;
+
+  // tierRate[i] = what tier i emits per second (tier 0 emits points, tier i>0 emits tier i-1 units).
+  // Global multipliers deliberately do NOT touch the feeders: through an 8-deep cascade a
+  // global ×G would compound to ×G^8 and the curve diverges. They apply to points only.
+  const tierRate = [];
+  for (let i = 0; i < 8; i++) {
+    tierRate[i] = S.echoes[i].n * ECHO_RATE[i] * milestoneMult(i) * ember;
+  }
+  // hold-vs-spend: the number you are sitting on amplifies its own growth
+  let ps = tierRate[0] * global * resonance();
+  if (hasG('feed')) ps *= 1 + Math.log10(1 + cpPrev) / 4;
+  const prodExp = 1 + 0.04 * S.cores;
+  if (ps > 1) ps = Math.pow(ps, prodExp);
+
+  // tap power
+  const heatMult = 1 + S.heat / 50;
+  const comboCap = hasG('chain') ? 2 : 1;
+  const comboMult = 1 + S.combo;
+  let cp = (1 + ps * (hasG('palm') ? 0.10 : 0.05)) * global * heatMult * comboMult;
+  if (hasG('grip')) cp *= 1 + Math.sqrt(S.echoes[0].n) / 20;
+  if (hasG('trans')) cp *= resonance();
+  if (od) cp *= 5;
+  const clickExp = 1 + 0.02 * S.cores;
+  if (cp > 1) cp = Math.pow(cp, clickExp);
+
+  const pendingFlux = fluxGainAt(S.totalRun);
+  const pendingCores = Math.max(0, coresAt(S.totalAll) - S.cores);
+
+  G = {
+    od, tierRate, ps, cp, heatMult, comboMult, comboCap,
+    critChance: hasG('lattice') ? 0.09 : 0.05,
+    critMult: hasG('vein') ? 14 : 8,
+    comboWindow: hasG('chain') ? 2.0 : 1.5,
+    pendingFlux, pendingCores,
+    autoTiers: (S.cores >= 2) ? 8 : (S.cores >= 1 || hasG('seer')) ? 4 : 0,
+  };
+  cpPrev = G.cp;
+}
+
+// ---------- core loop ----------
+const CAP = 1.79e308; // saturate instead of overflowing to Infinity
+function gain(x) {
+  S.points = Math.min(CAP, S.points + x);
+  S.totalRun = Math.min(CAP, S.totalRun + x);
+  S.totalAll = Math.min(CAP, S.totalAll + x);
+}
+
+function tick(dt) {
+  compute();
+  const now = performance.now();
+  S.lastTick = Date.now(); // lastTick == "last simulated wall-clock moment"
+
+  // heat decay (paused during overdrive/cooldown)
+  if (!G.od && now > S.cdUntil && now - S.lastClickAt > 800) {
+    S.heat = Math.max(0, S.heat - 5 * (hasG('pyro') ? 0.7 : 1) * dt);
+  }
+  if (S.odUntil && now >= S.odUntil) { S.odUntil = 0; S.heat = 0; S.cdUntil = now + 4000; }
+
+  // combo decay
+  if (now - S.lastClickAt > G.comboWindow * 1000 && S.combo > 0) {
+    S.combo = hasG('after') ? Math.max(0, S.combo - 0.25 * dt) : 0;
+  }
+
+  // cascade: each tier feeds the one below, tier 0 feeds the number
+  for (let i = 7; i >= 1; i--) S.echoes[i - 1].n = Math.min(CAP, S.echoes[i - 1].n + G.tierRate[i] * dt);
+  if (G.ps > 0) gain(G.ps * dt);
+
+  // automation
+  autoTimer += dt;
+  if (autoTimer >= 0.25) {
+    autoTimer = 0;
+    if (S.autobuy && G.autoTiers > 0) {
+      for (let i = Math.min(G.autoTiers, 8) - 1; i >= 0; i--) {
+        const c = echoCost(i, S.echoes[i].bought);
+        if (S.points >= c) { S.points -= c; S.echoes[i].bought++; S.echoes[i].n++; }
+      }
+    }
+    if (S.autoflux && S.cores >= 3 && G.pendingFlux >= Math.max(1, S.fluxTotal * 0.1)) doFlux(true);
+  }
+
+  checkAchievements();
+  if (!S.winSeen && S.points >= WIN_AT) showWin();
+}
+let autoTimer = 0;
+
+function doClick(x, y) {
+  const now = performance.now();
+  compute();
+
+  // crit roll (supercrit can chain)
+  let mult = 1, crit = false;
+  if (Math.random() < G.critChance) {
+    crit = true; mult = G.critMult;
+    if (hasG('super')) for (let i = 0; i < 3 && Math.random() < 0.2; i++) mult *= 2;
+  }
+  const amount = G.cp * mult;
+  gain(amount);
+  S.clicks++; S.runClicks++;
+  if (crit) S.crits++;
+
+  // combo + heat
+  S.combo = Math.min(G.comboCap, S.combo + 0.04);
+  if (!G.od && now > S.cdUntil) {
+    S.heat = Math.min(100, S.heat + 1.5 * (hasG('pyro') ? 1.5 : 1));
+    if (S.heat >= 100) { S.odUntil = now + 6000; S.odCount++; sfx('od'); toast('OVERDRIVE'); }
+  }
+  S.lastClickAt = now;
+
+  pop(x, y, '+' + fmt(amount), crit);
+  bump();
+  checkAchievements();
+  if (crit && !reducedMotion) {
+    field.classList.remove('shake'); void field.offsetWidth; field.classList.add('shake');
+  }
+  sfx(crit ? 'crit' : 'click');
+  if (S.clicks === 1) hint.style.opacity = '0';
+}
+
+function buyEcho(i, mode) {
+  const limit = mode === '1' ? 1 : mode === '10' ? 10 : 5000;
+  let count = 0;
+  while (count < limit) {
+    const c = echoCost(i, S.echoes[i].bought);
+    if (S.points < c) break;
+    S.points -= c; S.echoes[i].bought++; S.echoes[i].n++; count++;
+  }
+  if (count > 0) { sfx('buy'); renderPanel(); }
+}
+
+function doFlux(silent) {
+  compute();
+  if (G.pendingFlux < 1) return;
+  const gained = G.pendingFlux;
+  S.flux += gained; S.fluxTotal += gained; S.fluxCount++;
+  S.points = 0; S.totalRun = 0; S.runClicks = 0;
+  S.heat = 0; S.combo = 0; S.odUntil = 0; S.cdUntil = 0;
+  S.echoes = ECHO_NAMES.map((_, i) => ({
+    n: hasG('head') && i < 4 ? 3 : 0,
+    bought: hasG('head') && i < 4 ? 3 : 0,
+  }));
+  if (!silent) { toast('+' + fmt(gained) + ' ✦ FLUX', 'gold'); sfx('flux'); burst(); closePanel(); }
+  renderDock();
+}
+
+function doCollapse() {
+  compute();
+  if (G.pendingCores < 1) return;
+  if (!confirm('Collapse the singularity?\n\nEverything resets — flux, glyphs, echoes — but cores are forever. Each core deepens the exponent of all production and unlocks automation.')) return;
+  S.cores += G.pendingCores; S.collapses++;
+  S.flux = 0; S.fluxTotal = 0; S.fluxCount = 0; S.glyphs = {};
+  S.points = 0; S.totalRun = 0; S.runClicks = 0;
+  S.heat = 0; S.combo = 0; S.odUntil = 0; S.cdUntil = 0;
+  S.echoes = ECHO_NAMES.map(() => ({ n: 0, bought: 0 }));
+  toast('SINGULARITY — +' + G.pendingCores + ' CORE', 'gold'); sfx('flux'); burst();
+  closePanel(); renderDock();
+}
+
+function buyGlyph(id) {
+  const g = GLYPHS.find(x => x.id === id);
+  if (!g || S.glyphs[id] || S.flux < g.cost) return;
+  if (g.req && !S.glyphs[g.req]) return;
+  S.flux -= g.cost; S.glyphs[id] = true;
+  toast('⌬ ' + g.name.toUpperCase()); sfx('unlock');
+  renderPanel();
+}
+
+function checkAchievements() {
+  for (const a of ACHS) {
+    if (!S.ach[a.id] && a.test()) {
+      S.ach[a.id] = true;
+      toast('★ ' + a.name + ' — all production ×1.04', 'gold');
+      sfx('ach');
+    }
+  }
+}
+
+// ---------- offline progress ----------
+function offlineCatchup() {
+  const gap = (Date.now() - S.lastTick) / 1000;
+  if (gap < 30) return;
+  S.lastTick = Date.now();
+  const dt = Math.min(43200, gap); // cap 12h
+  const before = S.points;
+  const steps = 240, h = dt / steps;
+  for (let s = 0; s < steps; s++) {
+    compute();
+    for (let i = 7; i >= 1; i--) S.echoes[i - 1].n = Math.min(CAP, S.echoes[i - 1].n + G.tierRate[i] * h);
+    if (G.ps > 0) gain(G.ps * h);
+  }
+  const earned = S.points - before;
+  if (earned > 0) toast('+' + fmt(earned) + ' while away (' + fmtTime(dt) + ')');
+  checkAchievements();
+}
+
+// ---------- ui: refs ----------
+const field = document.getElementById('field');
+const big = document.getElementById('big');
+const rateEl = document.getElementById('rate');
+const comboEl = document.getElementById('combo');
+const hint = document.getElementById('hint');
+const heatEl = document.getElementById('heat');
+const heatFill = document.getElementById('heatfill');
+const panel = document.getElementById('panel');
+const ptitle = document.getElementById('ptitle');
+const pbody = document.getElementById('pbody');
+const toastsEl = document.getElementById('toasts');
+const winEl = document.getElementById('win');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---------- ui: particles ----------
+const fx = document.getElementById('fx');
+const ctx = fx.getContext('2d');
+let parts = [];
+function resizeFx() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  fx.width = innerWidth * dpr; fx.height = innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resizeFx); resizeFx();
+
+function pop(x, y, txt, crit) {
+  if (parts.length > (reducedMotion ? 30 : 130)) parts.shift();
+  parts.push({
+    x: x + (Math.random() - 0.5) * 30, y: y - 10 - Math.random() * 20,
+    vx: (Math.random() - 0.5) * 24, vy: -55 - Math.random() * 35,
+    t: 0, life: crit ? 1.5 : 1.1,
+    txt, crit,
+    size: (crit ? 22 : 14) + Math.min(10, Math.log10(1 + S.points) / 4),
+  });
+}
+function ambientPop() {
+  if (G.ps > 0 && !document.hidden) {
+    const r = big.getBoundingClientRect();
+    pop(r.left + r.width * (0.25 + Math.random() * 0.5), r.bottom + 26, '+' + fmt(G.ps * 1.6), false);
+  }
+}
+function burst() {
+  const cx = innerWidth / 2, cy = innerHeight * 0.38;
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    parts.push({
+      x: cx, y: cy, vx: Math.cos(a) * 130, vy: Math.sin(a) * 130,
+      t: 0, life: 1.0, txt: '✦', crit: true, size: 16,
+    });
+  }
+}
+function drawParts(dt) {
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.t += dt;
+    if (p.t >= p.life) { parts.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 14 * dt;
+    const k = p.t / p.life;
+    ctx.globalAlpha = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+    ctx.font = (p.size * (1 + k * 0.1)) + 'px ui-monospace, Menlo, Consolas, monospace';
+    ctx.fillStyle = p.crit ? '#ffcc66' : '#7adfff';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.txt, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- ui: sound (tiny webaudio synth, no assets) ----------
+let AC = null;
+function ac() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(freq, dur, type, gainV, when) {
+  const a = ac(), o = a.createOscillator(), g = a.createGain();
+  const t = a.currentTime + (when || 0);
+  o.type = type || 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(gainV, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function sfx(kind) {
+  if (!S.sound) return;
+  try {
+    if (kind === 'click') tone(170 + S.combo * 140 + Math.random() * 12, 0.05, 'sine', 0.045);
+    else if (kind === 'crit') { tone(660, 0.09, 'triangle', 0.06); tone(990, 0.12, 'sine', 0.05, 0.04); }
+    else if (kind === 'buy') tone(330, 0.06, 'square', 0.025);
+    else if (kind === 'unlock') { tone(440, 0.1, 'sine', 0.05); tone(660, 0.12, 'sine', 0.05, 0.08); tone(880, 0.16, 'sine', 0.05, 0.16); }
+    else if (kind === 'ach') { tone(523, 0.12, 'triangle', 0.05); tone(784, 0.2, 'sine', 0.05, 0.1); }
+    else if (kind === 'flux') { tone(110, 0.5, 'sawtooth', 0.05); tone(220, 0.4, 'sine', 0.05, 0.1); }
+    else if (kind === 'od') { tone(120, 0.3, 'sawtooth', 0.06); tone(240, 0.25, 'square', 0.04, 0.05); }
+  } catch (e) {}
+}
+
+// ---------- ui: toasts, win ----------
+function toast(msg, kind) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind === 'gold' ? ' gold' : '');
+  el.textContent = msg;
+  toastsEl.appendChild(el);
+  while (toastsEl.children.length > 4) toastsEl.firstChild.remove();
+  setTimeout(() => { el.classList.add('fade'); setTimeout(() => el.remove(), 600); }, 3600);
+}
+function showWin() {
+  S.winSeen = true;
+  checkAchievements();
+  winEl.hidden = false;
+  winEl.innerHTML =
+    '<h1>THE NUMBER IS EVERYTHING</h1>' +
+    '<p>1e300. There is nothing left to count.<br>' +
+    fmt(S.clicks) + ' taps · ' + S.fluxCount + ' fluxes · ' + S.collapses + ' collapses · ' +
+    fmtTime((Date.now() - S.started) / 1000) + ' of your life</p>' +
+    '<button class="bigbtn" style="max-width:280px" onclick="document.getElementById(\'win\').hidden=true">KEEP COUNTING</button>';
+  save();
+}
+
+// ---------- ui: panels ----------
+let openTab = null;
+function openPanel(tab) {
+  openTab = tab;
+  panel.classList.add('open');
+  document.querySelectorAll('.dockbtn').forEach(b => b.classList.toggle('open', b.dataset.tab === tab));
+  renderPanel();
+}
+function closePanel() {
+  openTab = null;
+  panel.classList.remove('open');
+  document.querySelectorAll('.dockbtn').forEach(b => b.classList.remove('open'));
+}
+document.getElementById('pclose').addEventListener('click', closePanel);
+document.querySelectorAll('.dockbtn').forEach(b =>
+  b.addEventListener('click', e => {
+    e.stopPropagation();
+    openTab === b.dataset.tab ? closePanel() : openPanel(b.dataset.tab);
+  }));
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+function renderPanel() {
+  if (!openTab) return;
+  compute();
+  if (openTab === 'echo') {
+    ptitle.textContent = 'E C H O E S';
+    let h = '<div class="chips">' +
+      ['1', '10', 'max'].map(m =>
+        '<button class="chip ' + (S.buyMode === m ? 'on' : '') + '" data-act="mode" data-m="' + m + '">×' + m + '</button>'
+      ).join('') +
+      (G.autoTiers > 0 ? '<button class="chip ' + (S.autobuy ? 'on' : '') + '" data-act="autobuy">AUTO ' + (S.autobuy ? 'ON' : 'OFF') + '</button>' : '') +
+      '</div>';
+    let shownTeaser = false;
+    for (let i = 0; i < 8; i++) {
+      const e = S.echoes[i];
+      const visible = e.bought > 0 || S.totalAll >= ECHO_COST[i] * 0.25;
+      if (!visible) {
+        if (!shownTeaser && i > 0) { h += '<div class="teaser">— a deeper echo stirs —</div>'; shownTeaser = true; }
+        continue;
+      }
+      const cost = echoCost(i, e.bought);
+      const can = S.points >= cost;
+      const k = mileCount(e.bought);
+      const lo = k === 0 ? 0 : Math.ceil(MILE_BASE * Math.pow(k, MILE_CURVE));
+      const next = mileNextAt(k);
+      const prog = Math.min(1, (e.bought - lo) / Math.max(1, next - lo));
+      const out = i === 0
+        ? fmt(G.ps) + '/s'
+        : fmt(G.tierRate[i]) + ' ' + ECHO_NAMES[i - 1] + '/s';
+      h += '<div class="row"><div class="l">' +
+        '<div class="name">' + ECHO_NAMES[i] + ' <span style="color:var(--dim)">· ' + fmt(Math.floor(e.n)) + '</span></div>' +
+        '<div class="sub">' + out + ' · ×' + fmt(milestoneMult(i)) + ' · next milestone at ' + fmt(next) + '</div>' +
+        '<div class="bar"><i style="width:' + (prog * 100) + '%"></i></div></div>' +
+        '<button class="buy ' + (can ? 'can' : '') + '" data-act="buy" data-i="' + i + '">' + fmt(cost) + '</button></div>';
+    }
+    pbody.innerHTML = h;
+  } else if (openTab === 'flux') {
+    ptitle.textContent = 'F L U X';
+    const p = G.pendingFlux;
+    const nextAt = nextFluxAt(p);
+    pbody.innerHTML =
+      '<p class="note">Collapse the lattice. The number, the echoes — all of it returns to zero. ' +
+      'What remains is <b style="color:var(--accent)">flux</b>: every point of it permanently amplifies everything.</p>' +
+      '<div class="stat"><span>flux held</span><b>' + fmt(S.flux) + ' ✦</b></div>' +
+      '<div class="stat"><span>flux earned (drives the multiplier)</span><b>' + fmt(S.fluxTotal) + ' ✦</b></div>' +
+      '<div class="stat"><span>current amplification</span><b>×' + fmt(fluxMult()) + '</b></div>' +
+      '<div class="stat"><span>next ✦ at</span><b>' + fmt(nextAt) + ' total</b></div>' +
+      (S.cores >= 3 ? '<div class="chips" style="margin-top:10px"><button class="chip ' + (S.autoflux ? 'on' : '') + '" data-act="autoflux">AUTO-FLUX ' + (S.autoflux ? 'ON' : 'OFF') + '</button></div>' : '') +
+      '<button class="bigbtn" data-act="flux" ' + (p < 1 ? 'disabled' : '') + '>FLUX — GAIN ' + fmt(p) + ' ✦</button>' +
+      '<p class="note">Flux is spent on glyphs ⌬, but the amplification keys off flux <i>earned</i>, so spending costs you nothing.</p>';
+  } else if (openTab === 'glyph') {
+    ptitle.textContent = 'G L Y P H S';
+    let h = '<div class="stat"><span>flux held</span><b>' + fmt(S.flux) + ' ✦</b></div>';
+    for (const g of GLYPHS) {
+      const owned = !!S.glyphs[g.id];
+      const reqOk = !g.req || S.glyphs[g.req];
+      const can = !owned && reqOk && S.flux >= g.cost;
+      const cls = owned ? 'owned' : (!reqOk ? 'locked' : '');
+      const reqName = g.req ? (GLYPHS.find(x => x.id === g.req) || {}).name : '';
+      h += '<div class="row glyph ' + cls + '" data-act="glyph" data-id="' + g.id + '"><div class="l">' +
+        '<div class="name">' + esc(g.name) + '</div>' +
+        '<div class="sub">' + esc(g.desc) + (g.req && !owned ? ' · needs ' + esc(reqName) : '') + '</div></div>' +
+        '<button class="buy ' + (can ? 'can' : '') + '" ' + (owned ? 'disabled' : '') + '>' +
+        (owned ? '⌬' : g.cost + ' ✦') + '</button></div>';
+    }
+    pbody.innerHTML = h;
+  } else if (openTab === 'stat') {
+    ptitle.textContent = 'T H E   L E D G E R';
+    const earned = Object.keys(S.ach).length;
+    let h =
+      '<div class="stat"><span>lifetime total</span><b>' + fmt(S.totalAll) + '</b></div>' +
+      '<div class="stat"><span>this flux cycle</span><b>' + fmt(S.totalRun) + '</b></div>' +
+      '<div class="stat"><span>taps / crits</span><b>' + fmt(S.clicks) + ' / ' + fmt(S.crits) + '</b></div>' +
+      '<div class="stat"><span>overdrives</span><b>' + S.odCount + '</b></div>' +
+      '<div class="stat"><span>resonance (held number boost)</span><b>×' + resonance().toFixed(2) + '</b></div>' +
+      '<div class="stat"><span>achievement amplifier</span><b>×' + achMult().toFixed(2) + '</b></div>' +
+      '<div class="stat"><span>time counting</span><b>' + fmtTime((Date.now() - S.started) / 1000) + '</b></div>';
+
+    if (S.totalAll >= 1e40 || S.cores > 0) {
+      h += '<h4>SINGULARITY</h4>';
+      if (S.cores > 0) {
+        h += '<div class="stat"><span>cores</span><b>' + S.cores + '</b></div>' +
+          '<div class="stat"><span>production exponent</span><b>^' + (1 + 0.04 * S.cores).toFixed(2) + '</b></div>' +
+          '<div class="stat"><span>flux gain</span><b>+' + (S.cores * 25) + '%</b></div>';
+      }
+      if (S.totalAll < CORE_AT && G.pendingCores < 1) {
+        h += '<p class="note">A weight gathers behind the number. At <b>1e50</b> lifetime, it can collapse.</p>';
+      } else {
+        h += '<p class="note">Collapse resets <b>everything</b> — flux and glyphs included. Cores are permanent: ' +
+          'each raises the production exponent (+0.04), tap exponent (+0.02), flux gain (+25%), and unlocks automation (1: auto-echoes I–IV, 2: all echoes, 3: auto-flux).</p>' +
+          '<button class="bigbtn danger" data-act="collapse" ' + (G.pendingCores < 1 ? 'disabled' : '') + '>COLLAPSE — GAIN ' + G.pendingCores + ' CORE</button>';
+      }
+    }
+
+    h += '<h4>MARKS (' + earned + '/' + ACHS.length + ' · each ×1.04)</h4><div class="achgrid">' +
+      ACHS.map(a => '<span class="ach ' + (S.ach[a.id] ? 'got' : '') + '">' + (S.ach[a.id] ? esc(a.name) : '???') + '</span>').join('') +
+      '</div>';
+
+    h += '<h4>SETTINGS</h4><div class="chips">' +
+      '<button class="chip ' + (S.sound ? 'on' : '') + '" data-act="sound">SOUND ' + (S.sound ? 'ON' : 'OFF') + '</button>' +
+      '<button class="chip" data-act="export">EXPORT SAVE</button>' +
+      '<button class="chip" data-act="import">IMPORT SAVE</button>' +
+      '<button class="chip" data-act="wipe" style="border-color:var(--hot);color:var(--hot)">ERASE ALL</button></div>' +
+      '<p class="note">NUMEN saves itself every few seconds. It also counts while you are gone (up to 12h).</p>';
+    pbody.innerHTML = h;
+  }
+}
+
+// The panel periodically re-renders its innerHTML; a node swapped out between
+// pointerdown and click would silently eat the tap, so re-rendering is held off
+// while a pointer is interacting with the panel (see panelHold in the frame loop).
+let panelHold = false, panelHoldUntil = 0;
+panel.addEventListener('pointerdown', () => { panelHold = true; });
+panel.addEventListener('pointerup', () => { panelHold = false; panelHoldUntil = performance.now() + 350; });
+panel.addEventListener('pointercancel', () => { panelHold = false; panelHoldUntil = performance.now() + 350; });
+
+// panel event delegation
+pbody.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'buy') buyEcho(+t.dataset.i, S.buyMode);
+  else if (act === 'mode') { S.buyMode = t.dataset.m; renderPanel(); }
+  else if (act === 'autobuy') { S.autobuy = !S.autobuy; renderPanel(); }
+  else if (act === 'autoflux') { S.autoflux = !S.autoflux; renderPanel(); }
+  else if (act === 'flux') doFlux();
+  else if (act === 'collapse') doCollapse();
+  else if (act === 'glyph') buyGlyph(t.dataset.id);
+  else if (act === 'sound') { S.sound = !S.sound; renderPanel(); }
+  else if (act === 'export') {
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(code).then(() => toast('Save copied to clipboard'), () => prompt('Copy your save:', code));
+    } else prompt('Copy your save:', code);
+  }
+  else if (act === 'import') {
+    const code = prompt('Paste a save:');
+    if (!code) return;
+    try {
+      const d = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+      if (typeof d.points !== 'number') throw 0;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+      location.reload();
+    } catch (err) { toast('That save did not parse'); }
+  }
+  else if (act === 'wipe') {
+    if (confirm('Erase everything? There is no undo.')) {
+      localStorage.removeItem(SAVE_KEY);
+      S = freshState(); cpPrev = 1;
+      location.reload();
+    }
+  }
+});
+
+// ---------- ui: dock visibility & alerts ----------
+function renderDock() {
+  const dEcho = document.getElementById('d-echo');
+  const dFlux = document.getElementById('d-flux');
+  const dGlyph = document.getElementById('d-glyph');
+  const dStat = document.getElementById('d-stat');
+
+  const show = (el, cond, first) => {
+    if (cond && !el.classList.contains('show')) {
+      el.classList.add('show');
+      if (first) { toast(first); sfx('unlock'); }
+    }
+  };
+  show(dEcho, S.totalAll >= 10, 'something stirs beneath the number — ◬');
+  show(dFlux, S.totalAll >= 1e8, 'the lattice can be collapsed — ✦');
+  show(dGlyph, S.fluxTotal >= 1, 'glyphs unlocked — ⌬');
+  show(dStat, S.clicks >= 5 || S.totalAll >= 10, null);
+
+  // pull-toward-the-button compulsion dots
+  let echoAlert = false;
+  for (let i = 0; i < 8; i++) {
+    const visible = S.echoes[i].bought > 0 || S.totalAll >= ECHO_COST[i] * 0.25;
+    if (visible && S.points >= echoCost(i, S.echoes[i].bought)) { echoAlert = true; break; }
+  }
+  dEcho.classList.toggle('alert', echoAlert);
+  dFlux.classList.toggle('alert', G.pendingFlux >= 1);
+  dGlyph.classList.toggle('alert', GLYPHS.some(g => !S.glyphs[g.id] && (!g.req || S.glyphs[g.req]) && S.flux >= g.cost));
+  dStat.classList.toggle('alert', G.pendingCores >= 1);
+}
+
+// ---------- ui: main render ----------
+let lastBigText = '', lastMag = -1;
+function bump() { big.classList.remove('bump'); void big.offsetWidth; big.classList.add('bump'); }
+function render() {
+  const txt = fmt(S.points);
+  if (txt !== lastBigText) { big.textContent = txt; lastBigText = txt; }
+  const mag = S.points >= 1 ? Math.floor(Math.log10(S.points)) : 0;
+  if (mag > lastMag) {
+    if (lastMag >= 0 && mag >= 3) { big.classList.remove('milestone'); void big.offsetWidth; big.classList.add('milestone'); }
+    lastMag = mag;
+  }
+  rateEl.textContent = G.ps > 0 ? '≈ ' + fmt(G.ps) + ' /s' : '';
+  comboEl.textContent = '×' + (1 + S.combo).toFixed(2);
+  comboEl.style.opacity = S.combo > 0.01 ? Math.min(1, 0.25 + S.combo) : 0;
+
+  const now = performance.now();
+  heatEl.className = G.od ? 'od' : (now < S.cdUntil ? 'cd' : '');
+  heatFill.style.width = S.heat + '%';
+  document.body.classList.toggle('od', G.od);
+}
+
+// ---------- input ----------
+field.addEventListener('pointerdown', e => {
+  if (e.target.closest('#dock') || e.target.closest('#panel')) return;
+  ac(); // wake audio on user gesture
+  doClick(e.clientX, e.clientY);
+});
+field.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+  if (e.key === ' ' && !openTab) { e.preventDefault(); doClick(innerWidth / 2, innerHeight * 0.55); }
+});
+
+// ---------- boot & loops ----------
+load();
+compute();
+offlineCatchup();
+renderDock();
+if (S.clicks > 0) hint.style.opacity = '0';
+
+let lastFrame = performance.now(), acc = 0, panelTimer = 0, titleTimer = 0, ambientTimer = 0;
+const STEP = 0.05;
+function frame(now) {
+  let dt = (now - lastFrame) / 1000;
+  lastFrame = now;
+  // any stall (hidden tab, system sleep) shows up as a wall-clock gap since the last tick
+  if ((Date.now() - S.lastTick) / 1000 > 30) { offlineCatchup(); dt = 0; acc = 0; }
+  acc += Math.min(dt, 30);
+  let n = 0;
+  while (acc >= STEP && n < 640) { tick(STEP); acc -= STEP; n++; }
+
+  drawParts(dt);
+  render();
+
+  ambientTimer += dt;
+  if (ambientTimer > 1.6) { ambientTimer = 0; ambientPop(); }
+  panelTimer += dt;
+  if (panelTimer > 0.25) {
+    panelTimer = 0;
+    if (openTab && !panelHold && now > panelHoldUntil) renderPanel();
+    renderDock();
+  }
+  titleTimer += dt;
+  if (titleTimer > 2) { titleTimer = 0; document.title = fmt(S.points) + ' · NUMEN'; }
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+setInterval(save, 5000);
+addEventListener('pagehide', save);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) save();
+  else { offlineCatchup(); lastFrame = performance.now(); acc = 0; }
+});
+</script>
+</body>
+</html>
