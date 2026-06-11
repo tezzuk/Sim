@@ -1,11 +1,11 @@
 // Every time/pacing/balance number lives here — the single tuning surface.
 
 // ---- Map ----
-export const MAP_TILES = 64;
+export const MAP_TILES = 80;
 export const TILE_PX = 16;
 export const WORLD_PX = MAP_TILES * TILE_PX;
-export const DOME_RADIUS = 28; // tiles
-export const INNER_RADIUS = 18; // tiles pressurized before the Annex Ring
+export const DOME_RADIUS = 36; // tiles
+export const INNER_RADIUS = 25; // rooms beyond this radius need the Annex Ring
 
 // ---- Time ----
 // 1 tick = 1 colony-minute. 10 ticks/sec at 1x speed.

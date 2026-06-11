@@ -1,86 +1,108 @@
+import { render } from 'preact';
+import { h } from 'preact';
 import './style.css';
+import { GameLoop } from './app/gameLoop';
+import { loadLocal, saveLocal } from './app/persistence';
 import { Camera } from './render/camera';
 import { InputController } from './render/input';
-import { DOME_RADIUS, MAP_TILES, MAX_DPR, TILE_PX, WORLD_PX } from './sim/constants';
+import { Renderer } from './render/renderer';
+import { AUTOSAVE_MS, MAX_DPR, TILE_PX } from './sim/constants';
+import { Sim } from './sim/sim';
+import { playerColonist } from './sim/state';
+import { newColony } from './sim/worldgen';
+import { App } from './ui/App';
+import { centerOnPlayer, refreshUi, selection, simRef } from './ui/store';
 
-// M0 shell: canvas + camera + touch input, drawing a placeholder dome.
-// The simulation boots from here in later milestones.
+// ---- boot the sim (load save or found a new colony) ----
+simRef.current = loadLocal() ?? new Sim(newColony((Math.random() * 2 ** 32) >>> 0));
 
+// ---- canvas / camera / renderer ----
 const canvas = document.getElementById('game') as HTMLCanvasElement;
-const ctx = canvas.getContext('2d')!;
 const camera = new Camera();
-let dpr = 1;
+const renderer = new Renderer(canvas, camera);
 
 function resize(): void {
-  dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-  canvas.width = Math.round(window.innerWidth * dpr);
-  canvas.height = Math.round(window.innerHeight * dpr);
+  renderer.dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+  canvas.width = Math.round(window.innerWidth * renderer.dpr);
+  canvas.height = Math.round(window.innerHeight * renderer.dpr);
   camera.resize(window.innerWidth, window.innerHeight);
 }
 window.addEventListener('resize', resize);
 resize();
 camera.fit();
+camera.zoom = Math.max(camera.zoom, 0.9);
 
-let tapMarker: { x: number; y: number; t: number } | null = null;
-new InputController(canvas, camera, (x, y) => {
-  tapMarker = { x, y, t: performance.now() };
+centerOnPlayer.current = () => {
+  const sim = simRef.current!;
+  const p = playerColonist(sim.state);
+  if (p) {
+    camera.x = p.x * TILE_PX;
+    camera.y = p.y * TILE_PX;
+    camera.zoom = Math.max(camera.zoom, 1.6);
+  }
+};
+// boot framing: centered on the player, wide enough to see the colony
+{
+  const p = playerColonist(simRef.current.state);
+  if (p) {
+    camera.x = p.x * TILE_PX;
+    camera.y = p.y * TILE_PX;
+  }
+  camera.zoom = Math.max(camera.zoom, Math.min(1.0, window.innerWidth / 900));
+}
+
+let lastAlpha = 0;
+new InputController(canvas, camera, (wx, wy) => {
+  const sim = simRef.current!;
+  selection.value = renderer.hitTest(sim.state, wx, wy, lastAlpha);
+  refreshUi();
 });
 
-function frame(): void {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.fillStyle = '#0b1020';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  camera.apply(ctx, dpr);
+// ---- the loop ----
+const loop = new GameLoop(
+  () => simRef.current!.tick(),
+  (alpha) => {
+    lastAlpha = alpha;
+    renderer.frame(simRef.current!.state, alpha, selection.value);
+  },
+  () => simRef.current!.state.speed,
+);
+loop.start();
 
-  const c = WORLD_PX / 2;
+// ---- UI ----
+render(h(App, null), document.getElementById('ui')!);
+setInterval(refreshUi, 250);
 
-  // tile grid
-  ctx.strokeStyle = 'rgba(80,100,160,0.15)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let i = 0; i <= MAP_TILES; i++) {
-    ctx.moveTo(i * TILE_PX, 0);
-    ctx.lineTo(i * TILE_PX, WORLD_PX);
-    ctx.moveTo(0, i * TILE_PX);
-    ctx.lineTo(WORLD_PX, i * TILE_PX);
-  }
-  ctx.stroke();
+// ---- persistence hooks ----
+setInterval(() => saveLocal(simRef.current!), AUTOSAVE_MS);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveLocal(simRef.current!);
+});
+window.addEventListener('pagehide', () => saveLocal(simRef.current!));
 
-  // dome shell
-  ctx.beginPath();
-  ctx.arc(c, c, DOME_RADIUS * TILE_PX, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(40,70,140,0.18)';
-  ctx.fill();
-  ctx.strokeStyle = '#6db3ff';
-  ctx.lineWidth = 3;
-  ctx.stroke();
+// ---- keyboard (desktop) ----
+window.addEventListener('keydown', (e) => {
+  const s = simRef.current!.state;
+  if (s.succession) return;
+  if (e.key === ' ') {
+    s.speed = s.speed === 0 ? 1 : 0;
+    e.preventDefault();
+  } else if (e.key === '1') s.speed = 1;
+  else if (e.key === '2') s.speed = 3;
+  else if (e.key === '3') s.speed = 10;
+  refreshUi();
+});
 
-  // central plaza
-  ctx.beginPath();
-  ctx.arc(c, c, 4 * TILE_PX, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(120,160,230,0.25)';
-  ctx.fill();
-
-  if (tapMarker) {
-    const age = performance.now() - tapMarker.t;
-    if (age < 600) {
-      ctx.beginPath();
-      ctx.arc(tapMarker.x, tapMarker.y, 6 + age / 40, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(255,209,102,${1 - age / 600})`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else {
-      tapMarker = null;
-    }
-  }
-
-  requestAnimationFrame(frame);
+// ---- debug overlay (?debug=1) ----
+if (new URLSearchParams(location.search).has('debug')) {
+  const el = document.createElement('div');
+  el.className = 'debug-overlay';
+  document.getElementById('ui')!.appendChild(el);
+  setInterval(() => {
+    const sim = simRef.current!;
+    const pop = sim.state.colonists.filter((c) => c.alive).length;
+    el.textContent =
+      `fps ${renderer.fps}  tick ${sim.tickMsAvg.toFixed(2)}ms\n` +
+      `pop ${pop}  tick# ${sim.state.tick}  zoom ${camera.zoom.toFixed(2)}`;
+  }, 500);
 }
-requestAnimationFrame(frame);
-
-const hud = document.createElement('div');
-hud.style.cssText =
-  'position:absolute;top:env(safe-area-inset-top,0);left:0;right:0;text-align:center;' +
-  'padding:10px;font-size:14px;color:#9fb4e8;text-shadow:0 1px 3px #000;pointer-events:none';
-hud.textContent = 'Lineage — colony shell (M0). Drag to pan, pinch/scroll to zoom.';
-document.getElementById('ui')!.appendChild(hud);
