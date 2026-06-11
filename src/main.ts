@@ -109,6 +109,11 @@ window.addEventListener('keydown', (e) => {
   refreshUi();
 });
 
+// ---- offline launch (PWA) ----
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js').catch(() => {});
+}
+
 // ---- debug overlay (?debug=1) ----
 if (new URLSearchParams(location.search).has('debug')) {
   const el = document.createElement('div');
