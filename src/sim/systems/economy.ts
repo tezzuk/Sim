@@ -212,9 +212,10 @@ export function workEconomyHourly(s: ColonyState, _rng: Rng): void {
     res.materials.cap,
     res.materials.amount + productionOf('materials'),
   );
+  const relay = s.legacy.owned.includes('orbitalRelay') ? 1.1 : 1;
   res.science.amount = Math.min(
     res.science.cap,
-    res.science.amount + productionOf('science'),
+    res.science.amount + productionOf('science') * relay,
   );
 
   // --- XP, influence, learning ---

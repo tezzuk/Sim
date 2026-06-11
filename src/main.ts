@@ -2,19 +2,23 @@ import { render } from 'preact';
 import { h } from 'preact';
 import './style.css';
 import { GameLoop } from './app/gameLoop';
+import { catchUp } from './app/offline';
 import { loadLocal, saveLocal } from './app/persistence';
 import { Camera } from './render/camera';
 import { InputController } from './render/input';
 import { Renderer } from './render/renderer';
-import { AUTOSAVE_MS, MAX_DPR, TILE_PX } from './sim/constants';
+import { AUTOSAVE_MS, MAX_DPR, TIER_A_MAX_TICKS, TILE_PX } from './sim/constants';
 import { Sim } from './sim/sim';
 import { playerColonist } from './sim/state';
 import { newColony } from './sim/worldgen';
 import { App } from './ui/App';
-import { centerOnPlayer, refreshUi, selection, simRef } from './ui/store';
+import { awayReport, centerOnPlayer, refreshUi, selection, simRef } from './ui/store';
 
 // ---- boot the sim (load save or found a new colony) ----
 simRef.current = loadLocal() ?? new Sim(newColony((Math.random() * 2 ** 32) >>> 0));
+// the colony lived while the game was closed
+awayReport.value = catchUp(simRef.current);
+saveLocal(simRef.current);
 
 // ---- canvas / camera / renderer ----
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -67,6 +71,11 @@ const loop = new GameLoop(
   },
   () => simRef.current!.state.speed,
 );
+loop.onOverflow = (pending) => {
+  const sim = simRef.current!;
+  const n = Math.min(pending, TIER_A_MAX_TICKS);
+  for (let i = 0; i < n; i++) sim.tick();
+};
 loop.start();
 
 // ---- UI ----
@@ -76,7 +85,14 @@ setInterval(refreshUi, 250);
 // ---- persistence hooks ----
 setInterval(() => saveLocal(simRef.current!), AUTOSAVE_MS);
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') saveLocal(simRef.current!);
+  if (document.visibilityState === 'hidden') {
+    saveLocal(simRef.current!);
+  } else {
+    // iOS freezes rAF in the background; treat the gap as offline time
+    const report = catchUp(simRef.current!);
+    if (report) awayReport.value = report;
+    refreshUi();
+  }
 });
 window.addEventListener('pagehide', () => saveLocal(simRef.current!));
 

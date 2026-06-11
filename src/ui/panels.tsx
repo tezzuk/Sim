@@ -8,11 +8,15 @@ import {
   cmdSetEducationFocus,
   cmdSetMentor,
   cmdSetResearch,
+  cmdStartProject,
   cmdTakeJob,
 } from '../sim/commands';
 import { TICKS_PER_SOL } from '../sim/constants';
 import { LOCI, phenotype } from '../sim/genetics';
 import { exportString, importString, saveLocal, clearSaves } from '../app/persistence';
+import { ascend, canAscend, legacyPointsFor } from '../sim/ascension';
+import { LEGACY } from '../content/legacyUpgrades';
+import { cmdBuyLegacy } from '../sim/commands';
 import { newColony } from '../sim/worldgen';
 import { Sim } from '../sim/sim';
 import {
@@ -258,18 +262,73 @@ function BuildingView({ s, b }: { s: ColonyState; b: Building }) {
 }
 
 function PlotView({ s, roomId }: { s: ColonyState; roomId: number }) {
+  const sim = simRef.current!;
   const room = s.map.rooms.find((r) => r.id === roomId);
   const locked = room?.outer && !s.annexUnlocked;
+  const project = s.projects.find((p) => p.roomId === roomId);
+
+  if (project) {
+    const def = BUILDINGS[project.defId];
+    return (
+      <div class="panel-body">
+        <div class="head">
+          <b>Under construction: {def.name}</b>
+        </div>
+        <Bar v={project.progress} max={project.workTotal} />
+        <div class="sub">
+          {Math.round((project.progress / project.workTotal) * 100)}% — jobless colonists build
+          during work hours.
+        </div>
+      </div>
+    );
+  }
+
+  const interior = room ? Math.min(room.w, room.h) - 2 : 0;
+  const options = Object.entries(BUILDINGS).filter(
+    ([, def]) =>
+      Math.max(def.w, def.h) <= interior &&
+      (!def.requiresResearch || s.research.completed.includes(def.requiresResearch)),
+  );
+
   return (
     <div class="panel-body">
       <div class="head">
         <b>{locked ? 'Locked plot' : 'Empty plot'}</b>
       </div>
-      <div class="sub">
-        {locked
-          ? 'Beyond the pressurized zone. Research the Pressurized Annex to unlock the outer ring.'
-          : 'A free building plot. Colony projects will be available here soon.'}
-      </div>
+      {locked ? (
+        <div class="sub">
+          Beyond the pressurized zone. Research the Pressurized Annex to unlock the outer ring.
+        </div>
+      ) : (
+        <>
+          <div class="sub">
+            Start a colony project here. Costs materials ⛏ and your influence ◆.
+          </div>
+          <div class="job-list">
+            {options.map(([defId, def]) => {
+              const affordable =
+                s.resources.materials.amount >= def.cost.materials &&
+                s.player.influence >= def.cost.influence;
+              return (
+                <button
+                  key={defId}
+                  class="job-row"
+                  disabled={!affordable}
+                  onClick={() => {
+                    cmdStartProject(sim, defId, roomId);
+                    refreshUi();
+                  }}
+                >
+                  <b>{def.name}</b>
+                  <small>
+                    ⛏{def.cost.materials} ◆{def.cost.influence}
+                  </small>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -456,6 +515,74 @@ function SettingsSheet() {
   );
 }
 
+function LegacySheet({ s }: { s: ColonyState }) {
+  const sim = simRef.current!;
+  const ascendReady = canAscend(s);
+  const points = legacyPointsFor(s);
+  return (
+    <div class="panel-body">
+      <div class="head">
+        <b>Legacy</b>
+        <span class="tags">
+          <span class="tag gold">✦ {s.legacy.points}</span>
+          <span class="tag">Colony #{s.stats.colonyNumber}</span>
+        </span>
+      </div>
+      <div class="sub">
+        Legacy persists across colonies. Earn it from aspirations and Ascension.
+      </div>
+      <div class="research-list">
+        {Object.entries(LEGACY).map(([id, def]) => {
+          const owned = s.legacy.owned.includes(id);
+          return (
+            <div key={id} class="research-row">
+              <div>
+                <b>{def.name}</b> <small>({def.cost} ✦{def.nextColony ? ' · future colonies' : ''})</small>
+                <div class="sub">{def.desc}</div>
+              </div>
+              <button
+                class="btn"
+                disabled={owned || s.legacy.points < def.cost}
+                onClick={() => {
+                  cmdBuyLegacy(sim, id);
+                  refreshUi();
+                }}
+              >
+                {owned ? 'Owned' : 'Buy'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <div class="label">Ascension</div>
+      <div class="sub">
+        Found a daughter colony on a new world. Banks <b>✦{points}</b> now (terraforming{' '}
+        {s.stats.terraforming.toFixed(1)}% · research {s.research.completed.length} · generation{' '}
+        {s.stats.generations}). Twelve of your kin carry their genomes onward; everything else
+        starts anew.
+      </div>
+      {!ascendReady && <div class="sub">Requires the Founding Caravan research.</div>}
+      <div class="actions">
+        <button
+          class="btn danger"
+          disabled={!ascendReady}
+          onClick={() => {
+            if (confirm(`Ascend now and bank ✦${points}? The current colony is left behind.`)) {
+              simRef.current = ascend(sim);
+              saveLocal(simRef.current);
+              activeSheet.value = 'none';
+              selection.value = null;
+              refreshUi();
+            }
+          }}
+        >
+          Ascend ✦{points}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function LegendSheet() {
   return (
     <div class="panel-body">
@@ -504,6 +631,7 @@ export function SideSheet({ s }: { s: ColonyState }) {
       {id === 'research' && <ResearchSheet s={s} />}
       {id === 'settings' && <SettingsSheet />}
       {id === 'legend' && <LegendSheet />}
+      {id === 'legacy' && <LegacySheet s={s} />}
     </div>
   );
 }

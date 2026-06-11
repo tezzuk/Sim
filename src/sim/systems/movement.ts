@@ -26,7 +26,8 @@ export function movementSystem(s: ColonyState): void {
     }
 
     if (c.ai.path.length > 0) {
-      const delay = Math.max(1, Math.round(2 * traitMod(c.traits, 'walkDelay')));
+      // 1 tile/tick base; the 'quick' trait shaves the occasional extra tick
+      const delay = Math.max(1, Math.round(1.25 * traitMod(c.traits, 'walkDelay')));
       if (s.tick - c.ai.movedAtTick >= delay) {
         c.px = c.x;
         c.py = c.y;

@@ -49,7 +49,7 @@ export function pawnWorldPos(
   c: Colonist,
   alpha: number,
 ): { x: number; y: number } {
-  const t = Math.min(1, Math.max(0, (s.tick - c.ai.movedAtTick + alpha) / 2));
+  const t = Math.min(1, Math.max(0, s.tick - c.ai.movedAtTick + alpha));
   return {
     x: (c.px + (c.x - c.px) * t) * TILE_PX + TILE_PX / 2,
     y: (c.py + (c.y - c.py) * t) * TILE_PX + TILE_PX / 2,

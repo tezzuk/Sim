@@ -22,8 +22,16 @@ export class Renderer {
     this.ctx = canvas.getContext('2d')!;
   }
 
+  private lastBuildings = -1;
+  private lastAnnex = false;
+
   frame(s: ColonyState, alpha: number, selection: Selection): void {
     const ctx = this.ctx;
+    if (s.buildings.length !== this.lastBuildings || s.annexUnlocked !== this.lastAnnex) {
+      this.mapLayer.dirty = true;
+      this.lastBuildings = s.buildings.length;
+      this.lastAnnex = s.annexUnlocked;
+    }
     if (this.mapLayer.dirty) this.mapLayer.redraw(s);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -55,6 +63,25 @@ export class Renderer {
         );
         ctx.setLineDash([]);
       }
+    }
+
+    // active construction sites
+    for (const p of s.projects) {
+      const room = s.map.rooms.find((r) => r.id === p.roomId);
+      if (!room) continue;
+      const x = room.x * TILE_PX;
+      const y = room.y * TILE_PX;
+      const w = room.w * TILE_PX;
+      const h = room.h * TILE_PX;
+      ctx.strokeStyle = 'rgba(255,180,80,0.9)';
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(40,30,12,0.8)';
+      ctx.fillRect(x + 8, y + h / 2 - 3, w - 16, 6);
+      ctx.fillStyle = '#ffb450';
+      ctx.fillRect(x + 8, y + h / 2 - 3, (w - 16) * Math.min(1, p.progress / p.workTotal), 6);
     }
 
     drawPawns(ctx, s, alpha, this.camera.zoom, selection?.kind === 'colonist' ? selection.id : null);

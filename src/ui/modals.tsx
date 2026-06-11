@@ -1,8 +1,67 @@
 import { ASPIRATIONS } from '../content/aspirations';
-import { cmdApplySuccession, cmdChooseAspiration } from '../sim/commands';
+import { TICKS_PER_SOL } from '../sim/constants';
+import { cmdApplySuccession, cmdChooseAspiration, cmdDecide } from '../sim/commands';
 import { SKILLS, type ColonyState, colonistById, ageYears } from '../sim/state';
 import { levelFromXp } from '../sim/worldgen';
-import { aspirationDeferred, refreshUi, simRef } from './store';
+import { aspirationDeferred, awayReport, refreshUi, simRef } from './store';
+
+export function WelcomeBackModal() {
+  const r = awayReport.value!;
+  return (
+    <div class="modal-veil">
+      <div class="modal">
+        <h2>While you were away…</h2>
+        <p class="sub">
+          {r.sols} sols passed ({r.years} years). Population {r.popBefore} → {r.popAfter} ·{' '}
+          {r.births} born · {r.deaths} died.
+        </p>
+        {r.playerChanged && (
+          <div class="life-summary">
+            <b>Your colonist died while you were gone.</b> The line continued through the
+            designated heir — see the chronicle for the succession.
+          </div>
+        )}
+        <div class="chronicle">
+          {r.entries.map((e, i) => (
+            <div key={i} class={`entry sev${e.severity}`}>
+              <small>Sol {Math.floor(e.tick / TICKS_PER_SOL) + 1}</small> {e.text}
+            </div>
+          ))}
+        </div>
+        <button class="btn" onClick={() => (awayReport.value = null)}>
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function DecisionModal({ s }: { s: ColonyState }) {
+  const sim = simRef.current!;
+  const d = s.decision!;
+  return (
+    <div class="modal-veil">
+      <div class="modal">
+        <h2>{d.title}</h2>
+        <p class="sub">{d.body}</p>
+        {d.options.map((o, i) => (
+          <button
+            key={i}
+            class="option"
+            onClick={() => {
+              cmdDecide(sim, i);
+              refreshUi();
+            }}
+          >
+            <b>{o.label}</b>
+            <small>{o.desc}</small>
+          </button>
+        ))}
+        <p class="sub">Undecided choices resolve themselves after a sol.</p>
+      </div>
+    </div>
+  );
+}
 
 export function AspirationModal({ s }: { s: ColonyState }) {
   const sim = simRef.current!;

@@ -148,10 +148,13 @@ export function behaviorHourly(s: ColonyState, rng: Rng): void {
     }
 
     const pending = ACTIVITY_STATE[act];
-    const sameActivity =
-      (c.ai.state === pending || (c.ai.state === 'seeking' && c.ai.pending === pending)) &&
-      pending !== 'idle';
-    if (sameActivity && pending !== 'eating') continue; // keep doing it
+    const doing = (st: typeof pending) =>
+      c.ai.state === st || (c.ai.state === 'seeking' && c.ai.pending === st);
+    // construction counts as work: crews on site stay committed
+    if (act === 'work' && s.projects.length > 0 && doing('constructing')) continue;
+    const sameActivity = doing(pending) && pending !== 'idle';
+    if (sameActivity && pending !== 'eating' && !(pending === 'working' && s.projects.length > 0))
+      continue; // keep doing it
 
     switch (act) {
       case 'sleep': {
@@ -164,6 +167,21 @@ export function behaviorHourly(s: ColonyState, rng: Rng): void {
         break;
       }
       case 'work': {
+        // when something is being built, crews rotate to the site: the
+        // jobless head there outright, settled workers peel off occasionally
+        const settledAtJob = c.ai.state === 'working';
+        if (s.projects.length > 0 && (!c.job || (settledAtJob && rng.chance(0.25)))) {
+          const p = s.projects[rng.int(s.projects.length)];
+          const room = s.map.rooms.find((r) => r.id === p.roomId);
+          if (room) {
+            setTarget(s, c, 'constructing', null, rng, {
+              x: room.x + 1 + rng.int(room.w - 2),
+              y: room.y + 1 + rng.int(room.h - 2),
+            });
+            break;
+          }
+        }
+        if (settledAtJob) break; // already at the right post
         const b = c.job ? buildingById(s, c.job.buildingId) : undefined;
         if (b) setTarget(s, c, 'working', b, rng);
         else setTarget(s, c, 'idle', null, rng, plazaSpot(s, rng));

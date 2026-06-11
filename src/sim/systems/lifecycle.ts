@@ -56,14 +56,14 @@ export function kill(s: ColonyState, c: Colonist, cause: string, rng: Rng): void
   if (isPlayer) buildSuccession(s, c, rng);
 }
 
-function illnessChance(s: ColonyState, c: Colonist): number {
+export function illnessChance(s: ColonyState, c: Colonist): number {
   let p = 0.004 * (2 - phenoMult(c.genome, 'resilience'));
   if (s.shortages.oxygen || s.shortages.water || c.needs.food < 20) p *= 2.5;
   if (s.events.active.some((e) => e.defId === 'outbreak')) p *= 6;
   return p;
 }
 
-function deathHazardPerSol(s: ColonyState, c: Colonist): number {
+export function deathHazardPerSol(s: ColonyState, c: Colonist): number {
   const effAge = Math.max(
     0,
     ageYears(s, c) - researchAgeShift(s.research.completed),
@@ -87,7 +87,7 @@ function rollPlayerAspirations(s: ColonyState, rng: Rng): void {
   s.player.aspirationChoices = picks;
 }
 
-function updatePlayerAspiration(s: ColonyState): void {
+export function updatePlayerAspiration(s: ColonyState): void {
   const p = playerColonist(s);
   if (!p?.aspiration || p.aspiration.done) return;
   const def = ASPIRATIONS[p.aspiration.id];
@@ -189,8 +189,10 @@ export function lifecycleSol(s: ColonyState, rng: Rng, rngGen: Rng): void {
     ) {
       const dad = byId.get(c.partnerId);
       if (dad?.alive) {
+        const surge = s.events.active.some((e) => e.defId === 'birthSurge') ? 2 : 1;
         const p =
           BIRTH_CHANCE_PER_SOL *
+          surge *
           phenoMult(c.genome, 'fertility') *
           phenoMult(dad.genome, 'fertility') *
           researchMult(s.research.completed, 'birthRate');
@@ -200,49 +202,7 @@ export function lifecycleSol(s: ColonyState, rng: Rng, rngGen: Rng): void {
     if (c.pregnantUntilTick !== null && s.tick >= c.pregnantUntilTick) {
       c.pregnantUntilTick = null;
       const dad = byId.get(c.partnerId ?? -1);
-      if (dad) {
-        const sex = rngGen.chance(0.5) ? 'F' : 'M';
-        const genome = inheritGenome(rngGen, c.genome, dad.genome);
-        let traits = expressTraits(rngGen, genome, [...c.traits, ...dad.traits]);
-        if (researchMult(s.research.completed, 'mutationShield') < 1) {
-          // gene screening halves the chance harmful traits stick
-          traits = traits.filter(
-            (t) => !(rngGen.chance(0.5) && isNegativeTrait(t)),
-          );
-        }
-        const home = buildingById(s, c.homeId);
-        const baby = makeColonist({
-          id: s.nextId++,
-          name: sex === 'F' ? rngGen.pick(GIVEN_F) : rngGen.pick(GIVEN_M),
-          family: dad.family ?? c.family,
-          sex,
-          bornTick: s.tick,
-          genome,
-          traits,
-          x: home?.x ?? c.x,
-          y: home?.y ?? c.y,
-          parents: [c.id, dad.id],
-        });
-        baby.stage = 'infant';
-        baby.homeId = c.homeId;
-        baby.relationships.push({ otherId: c.id, kind: 'family', value: 70 });
-        baby.relationships.push({ otherId: dad.id, kind: 'family', value: 70 });
-        c.childrenIds.push(baby.id);
-        dad.childrenIds.push(baby.id);
-        newborns.push(baby);
-        s.stats.totalBirths++;
-        const playerFamily =
-          c.id === s.player.colonistId ||
-          dad.id === s.player.colonistId ||
-          c.parents?.includes(s.player.colonistId) ||
-          dad.parents?.includes(s.player.colonistId);
-        chronicle(
-          s,
-          'birth',
-          `${baby.name} ${baby.family} is born to ${c.name} and ${dad.name}.`,
-          playerFamily ? 1 : 0,
-        );
-      }
+      if (dad) newborns.push(giveBirth(s, c, dad, rngGen));
     }
   }
   s.colonists.push(...newborns);
@@ -262,4 +222,55 @@ export function lifecycleSol(s: ColonyState, rng: Rng, rngGen: Rng): void {
 
 function isNegativeTrait(id: string): boolean {
   return ['sickly', 'frail', 'anxious', 'glutton', 'loner'].includes(id);
+}
+
+/** Create a newborn for the couple (shared by the live sim and offline coarse sim).
+ *  The caller pushes the returned baby into s.colonists. */
+export function giveBirth(
+  s: ColonyState,
+  mom: Colonist,
+  dad: Colonist,
+  rngGen: Rng,
+): Colonist {
+  const sex = rngGen.chance(0.5) ? 'F' : 'M';
+  const genome = inheritGenome(rngGen, mom.genome, dad.genome);
+  let traits = expressTraits(rngGen, genome, [...mom.traits, ...dad.traits]);
+  const shielded =
+    researchMult(s.research.completed, 'mutationShield') < 1 ||
+    s.legacy.owned.includes('resilientStock');
+  if (shielded) {
+    traits = traits.filter((t) => !(rngGen.chance(0.5) && isNegativeTrait(t)));
+  }
+  const home = buildingById(s, mom.homeId);
+  const baby = makeColonist({
+    id: s.nextId++,
+    name: sex === 'F' ? rngGen.pick(GIVEN_F) : rngGen.pick(GIVEN_M),
+    family: dad.family ?? mom.family,
+    sex,
+    bornTick: s.tick,
+    genome,
+    traits,
+    x: home?.x ?? mom.x,
+    y: home?.y ?? mom.y,
+    parents: [mom.id, dad.id],
+  });
+  baby.stage = 'infant';
+  baby.homeId = mom.homeId;
+  baby.relationships.push({ otherId: mom.id, kind: 'family', value: 70 });
+  baby.relationships.push({ otherId: dad.id, kind: 'family', value: 70 });
+  mom.childrenIds.push(baby.id);
+  dad.childrenIds.push(baby.id);
+  s.stats.totalBirths++;
+  const playerFamily =
+    mom.id === s.player.colonistId ||
+    dad.id === s.player.colonistId ||
+    mom.parents?.includes(s.player.colonistId) ||
+    dad.parents?.includes(s.player.colonistId);
+  chronicle(
+    s,
+    'birth',
+    `${baby.name} ${baby.family} is born to ${mom.name} and ${dad.name}.`,
+    playerFamily ? 1 : 0,
+  );
+  return baby;
 }

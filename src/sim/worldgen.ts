@@ -296,10 +296,24 @@ export function stageForAge(years: number): Colonist['stage'] {
   return 'elder';
 }
 
+export interface AscensionCarry {
+  genomes: number[][];
+  families: string[];
+  generations: number;
+  lifeNumber: number;
+  keepResearch: string[];
+  colonyNumber: number;
+}
+
 /** A brand-new colony: map, founders, starting buildings, resources. */
-export function newColony(seed: number, legacy?: ColonyState['legacy']): ColonyState {
+export function newColony(
+  seed: number,
+  legacy?: ColonyState['legacy'],
+  carry?: AscensionCarry,
+): ColonyState {
   const map = generateMap(seed);
   const g = Rng.stream(seed, 'genesis');
+  const owned = legacy?.owned ?? [];
   let nextId = 1;
 
   // starting buildings into the innermost free rooms
@@ -366,12 +380,15 @@ export function newColony(seed: number, legacy?: ColonyState['legacy']): ColonyS
   const adults: Colonist[] = [];
   for (let i = 0; i < 8; i++) {
     const sex = i < 4 ? 'F' : 'M';
-    const genome = newGenome(g);
+    let genome = carry?.genomes[i] ? [...carry.genomes[i]] : newGenome(g);
+    if (owned.includes('geneArchive')) {
+      genome = genome.map((a) => Math.min(100, a + 4));
+    }
     const spot = plazaSpot();
     const c = makeColonist({
       id: nextId++,
       name: pickName(sex),
-      family: pickFamily(),
+      family: carry?.families[i] ?? pickFamily(),
       sex,
       bornTick: -Math.round(g.range(21, 34) * TICKS_PER_YEAR),
       genome,
@@ -379,7 +396,8 @@ export function newColony(seed: number, legacy?: ColonyState['legacy']): ColonyS
       x: spot.x,
       y: spot.y,
     });
-    const lvl = 2 + g.int(3);
+    let lvl = 2 + g.int(3);
+    if (owned.includes('veteranCrew')) lvl += 2;
     c.skills[primaries[i]] = { xp: lvl * lvl * 100, level: lvl };
     const minor = g.pick(SKILLS);
     if (minor !== primaries[i]) c.skills[minor] = { xp: 100, level: 1 };
@@ -456,7 +474,7 @@ export function newColony(seed: number, legacy?: ColonyState['legacy']): ColonyS
       power: { amount: 50, cap: 100 },
       water: { amount: 150, cap: 300 },
       oxygen: { amount: 250, cap: 400 },
-      biomass: { amount: 180, cap: 300 },
+      biomass: { amount: owned.includes('cryoSeedVault') ? 270 : 180, cap: 300 },
       materials: { amount: 120, cap: 300 },
       science: { amount: 0, cap: 2000 },
     },
@@ -464,7 +482,13 @@ export function newColony(seed: number, legacy?: ColonyState['legacy']): ColonyS
     colonists,
     buildings,
     projects: [],
-    research: { completed: [], current: null },
+    research: {
+      completed: [
+        ...(owned.includes('fusionBlueprints') ? ['fusionPlant'] : []),
+        ...(carry?.keepResearch ?? []),
+      ].filter((v, i, arr) => arr.indexOf(v) === i),
+      current: null,
+    },
     events: { active: [] },
     map,
     player: {
@@ -472,18 +496,20 @@ export function newColony(seed: number, legacy?: ColonyState['legacy']): ColonyS
       influence: 5,
       designatedHeirId: null,
       mentorId: null,
-      lifeNumber: 1,
+      lifeNumber: carry?.lifeNumber ?? 1,
       aspirationChoices: null,
     },
     legacy: legacy ?? { points: 0, owned: [] },
     stats: {
       terraforming: 0,
-      generations: 1,
+      generations: carry?.generations ?? 1,
       totalBirths: 0,
       totalDeaths: 0,
       founded: Date.now(),
+      colonyNumber: carry?.colonyNumber ?? 1,
     },
     chronicle: [],
+    decision: null,
     succession: null,
     nextId,
   };

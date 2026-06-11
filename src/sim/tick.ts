@@ -1,7 +1,9 @@
 import { TICKS_PER_HOUR, TICKS_PER_SOL } from './constants';
 import type { Sim } from './sim';
 import { behaviorHourly } from './systems/behavior';
+import { constructionHourly, constructionTick } from './systems/construction';
 import { workEconomyHourly } from './systems/economy';
+import { eventsSol } from './systems/events';
 import { lifecycleSol } from './systems/lifecycle';
 import { movementSystem } from './systems/movement';
 import { needsHourly } from './systems/needs';
@@ -21,13 +23,16 @@ export function runTick(sim: Sim): void {
     behaviorHourly(s, sim.rngSim);
     workEconomyHourly(s, sim.rngSim);
     needsHourly(s, sim.rngSim);
+    constructionHourly(s);
   }
 
   if (s.tick % TICKS_PER_SOL === 0) {
     lifecycleSol(s, sim.rngSim, sim.rngGenetics);
     relationshipsSol(s, sim.rngSim);
     researchSol(s);
+    eventsSol(s, sim.rngEvents);
   }
 
   movementSystem(s);
+  constructionTick(s);
 }

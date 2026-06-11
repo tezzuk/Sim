@@ -173,6 +173,14 @@ export interface ColonyState {
     aspirationChoices: string[] | null; // 3 rolled options awaiting a pick
   };
   legacy: { points: number; owned: string[] };
+  /** A pending event decision card for the player (auto-resolves after a sol). */
+  decision: {
+    defId: string;
+    title: string;
+    body: string;
+    options: { label: string; desc: string }[];
+    createdTick: number;
+  } | null;
   /** Set when the player's colonist dies; the heir panel resolves it. */
   succession: {
     deceasedName: string;
@@ -187,6 +195,7 @@ export interface ColonyState {
     totalBirths: number;
     totalDeaths: number;
     founded: number; // wall-clock ms when colony founded
+    colonyNumber: number; // increments with each Ascension
   };
   chronicle: ChronicleEntry[];
   nextId: number; // shared id counter (colonists/buildings/projects)

@@ -4,11 +4,12 @@ import { cmdSetSpeed } from '../sim/commands';
 import { SPEEDS, TICKS_PER_SOL, SOLS_PER_YEAR, TICKS_PER_HOUR } from '../sim/constants';
 import type { ColonyState, ResourceId } from '../sim/state';
 import { ageYears, playerColonist } from '../sim/state';
-import { AspirationModal, HeirModal } from './modals';
+import { AspirationModal, DecisionModal, HeirModal, WelcomeBackModal } from './modals';
 import { InspectorSheet, SideSheet } from './panels';
 import {
   activeSheet,
   aspirationDeferred,
+  awayReport,
   centerOnPlayer,
   refreshUi,
   selection,
@@ -138,6 +139,9 @@ function SideButtons({ s }: { s: ColonyState }) {
       <button onClick={() => toggle('research')} title="Research">
         🔬
       </button>
+      <button onClick={() => toggle('legacy')} title="Legacy & Ascension">
+        ✦
+      </button>
       <button onClick={() => toggle('legend')} title="Legend">
         ❓
       </button>
@@ -171,6 +175,8 @@ export function App() {
       {s.player.aspirationChoices && player?.alive && !aspirationDeferred.value && !s.succession && (
         <AspirationModal s={s} />
       )}
+      {s.decision && !s.succession && !awayReport.value && <DecisionModal s={s} />}
+      {awayReport.value && !s.succession && <WelcomeBackModal />}
       {s.succession && <HeirModal s={s} />}
     </>
   );

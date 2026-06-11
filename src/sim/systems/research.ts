@@ -1,8 +1,23 @@
-import { RESEARCH } from '../../content/research';
+import { RESEARCH, researchMult } from '../../content/research';
+import { BUILDINGS } from '../content-bridge';
 import { playerColonist, type ColonyState, chronicle } from '../state';
 
 /** Per sol: pour stored science into the current node; apply era gates. */
 export function researchSol(s: ColonyState): void {
+  // terraforming accrual from staffed atmosphere processors
+  for (const b of s.buildings) {
+    const def = BUILDINGS[b.defId];
+    if (def.terraformPerWorkerSol > 0 && s.tick >= b.offlineUntilTick) {
+      s.stats.terraforming = Math.min(
+        100,
+        s.stats.terraforming +
+          def.terraformPerWorkerSol *
+            b.workers.length *
+            researchMult(s.research.completed, 'terraform'),
+      );
+    }
+  }
+
   const cur = s.research.current;
   if (!cur) return;
   const def = RESEARCH[cur.id];

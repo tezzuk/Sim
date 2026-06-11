@@ -1,8 +1,10 @@
 // All UI → sim mutations go through these typed commands.
 import { ASPIRATIONS } from '../content/aspirations';
+import { LEGACY } from '../content/legacyUpgrades';
 import { RESEARCH, eraIndex } from '../content/research';
 import { BUILDINGS, JOBS } from './content-bridge';
 import { applySuccession } from './heir';
+import { resolveDecision } from './systems/events';
 import type { Sim } from './sim';
 import {
   type JobId,
@@ -109,6 +111,30 @@ export function cmdApplySuccession(sim: Sim, heirId: number): boolean {
   return applySuccession(sim.state, heirId);
 }
 
+/** Spend influence + materials to start a building project on a free plot. */
+export function cmdStartProject(sim: Sim, defId: string, roomId: number): boolean {
+  const s = sim.state;
+  const def = BUILDINGS[defId];
+  const room = s.map.rooms.find((r) => r.id === roomId);
+  if (!def || !room || room.buildingId !== null) return false;
+  if (room.outer && !s.annexUnlocked) return false;
+  if (s.projects.some((p) => p.roomId === roomId)) return false;
+  if (def.requiresResearch && !s.research.completed.includes(def.requiresResearch)) return false;
+  if (s.resources.materials.amount < def.cost.materials) return false;
+  if (s.player.influence < def.cost.influence) return false;
+  s.resources.materials.amount -= def.cost.materials;
+  s.player.influence -= def.cost.influence;
+  s.projects.push({
+    id: s.nextId++,
+    defId,
+    roomId,
+    progress: 0,
+    workTotal: def.work,
+  });
+  chronicle(s, 'project', `Ground is broken for a new ${def.name}.`, 1);
+  return true;
+}
+
 export function cmdSetResearch(sim: Sim, id: string): boolean {
   const s = sim.state;
   const def = RESEARCH[id];
@@ -116,5 +142,19 @@ export function cmdSetResearch(sim: Sim, id: string): boolean {
   if (eraIndex(def.era) > eraIndex(s.era)) return false;
   if (!def.requires.every((r) => s.research.completed.includes(r))) return false;
   s.research.current = { id, progress: s.research.current?.id === id ? s.research.current.progress : 0 };
+  return true;
+}
+
+export function cmdDecide(sim: Sim, choice: number): boolean {
+  return resolveDecision(sim.state, choice, sim.rngSim);
+}
+
+export function cmdBuyLegacy(sim: Sim, id: string): boolean {
+  const s = sim.state;
+  const def = LEGACY[id];
+  if (!def || s.legacy.owned.includes(id) || s.legacy.points < def.cost) return false;
+  s.legacy.points -= def.cost;
+  s.legacy.owned.push(id);
+  chronicle(s, 'legacy', `Legacy secured: ${def.name}.`, 1);
   return true;
 }

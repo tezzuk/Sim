@@ -1,4 +1,5 @@
 import { signal } from '@preact/signals';
+import type { AwayReport } from '../app/offline';
 import type { Sim } from '../sim/sim';
 import type { Selection } from '../render/renderer';
 
@@ -12,9 +13,10 @@ export const refreshUi = (): void => {
 };
 
 export const selection = signal<Selection>(null);
-export type SheetId = 'none' | 'chronicle' | 'research' | 'settings' | 'legend';
+export type SheetId = 'none' | 'chronicle' | 'research' | 'settings' | 'legend' | 'legacy';
 export const activeSheet = signal<SheetId>('none');
 export const aspirationDeferred = signal(false);
+export const awayReport = signal<AwayReport | null>(null);
 
 /** Set by main.ts: centers the camera on the player's colonist. */
 export const centerOnPlayer: { current: () => void } = { current: () => {} };
