@@ -1,0 +1,1461 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#03060a" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='2' y='13' font-size='13' fill='%2369d8c8'>T</text></svg>" />
+<title>TIDE</title>
+<style>
+  :root {
+    --bg: #03060a;
+    --fg: #e6f0ee;
+    --dim: #51626a;
+    --accent: #69d8c8;
+    --gold: #ffcc66;
+    --hot: #ff7a5c;
+    --panel: #081019;
+    --line: #14222c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  }
+
+  #field { position: fixed; inset: 0; cursor: pointer; touch-action: manipulation; }
+  #field.shake { animation: shake .09s linear; }
+  @keyframes shake {
+    25% { transform: translate(2px, -2px); }
+    50% { transform: translate(-2px, 1px); }
+    75% { transform: translate(1px, 2px); }
+  }
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  #title {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); left: 18px;
+    font-size: 11px; letter-spacing: .5em; color: var(--dim); opacity: .7; pointer-events: none;
+  }
+  #moontag {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); right: 18px;
+    font-size: 11px; letter-spacing: .25em; color: var(--dim); pointer-events: none; text-align: right;
+  }
+  #moontag b { color: var(--accent); font-weight: 500; }
+
+  #surfstack {
+    position: absolute; left: 0; right: 0; top: 26%; transform: translateY(-50%);
+    text-align: center; pointer-events: none;
+  }
+  #surf {
+    font-size: clamp(38px, 10vw, 88px); font-weight: 700; letter-spacing: .02em;
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+    text-shadow: 0 0 28px rgba(105, 216, 200, .14);
+    transition: text-shadow .3s;
+  }
+  #surf.bump { animation: bump .12s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  body.frenzy #surf { color: var(--gold); text-shadow: 0 0 40px rgba(255, 204, 102, .5); }
+  body.danger #surf { text-shadow: 0 0 36px rgba(255, 122, 92, .45); }
+  #toll {
+    margin-top: 10px; font-size: 12px; letter-spacing: .22em; color: var(--dim); transition: color .3s;
+  }
+  #toll.red { color: var(--hot); animation: tollpulse .9s ease-in-out infinite; }
+  @keyframes tollpulse { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+  #pearlline { margin-top: 8px; font-size: 11.5px; letter-spacing: .25em; color: var(--gold); opacity: .85; }
+  #hint {
+    margin-top: 20px; font-size: 12px; letter-spacing: .35em; color: var(--dim);
+    animation: hintpulse 1.6s ease-in-out infinite; transition: opacity .8s;
+  }
+  @keyframes hintpulse { 0%, 100% { opacity: .35; } 50% { opacity: .9; } }
+  #combo {
+    position: absolute; left: 50%; top: 12%; transform: translateX(-50%);
+    font-size: 15px; color: var(--accent); opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  body.frenzy #combo { color: var(--gold); }
+  #phaseword {
+    position: absolute; left: 50%; bottom: 26%; transform: translateX(-50%);
+    font-size: 11px; letter-spacing: .5em; color: var(--accent); opacity: 0;
+    pointer-events: none; transition: opacity .4s;
+  }
+  #phaseword.on { opacity: .8; }
+  #phaseword.gold { color: var(--gold); }
+
+  #relicchips {
+    position: absolute; left: 14px; bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px));
+    display: flex; flex-direction: column-reverse; gap: 5px; pointer-events: none; max-height: 40vh; flex-wrap: wrap;
+  }
+  .rchip {
+    font-size: 13px; color: var(--accent); opacity: .75; width: 22px; height: 22px;
+    border: 1px solid var(--line); border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    background: rgba(8, 16, 25, .7); animation: dockin .5s ease-out;
+  }
+  .rchip.cursed { color: var(--hot); }
+
+  #dock {
+    position: absolute; right: 14px; bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px));
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .dockbtn {
+    width: 46px; height: 46px; border: 1px solid var(--line); border-radius: 13px;
+    background: rgba(8, 16, 25, .8); color: var(--dim); font-size: 18px;
+    font-family: inherit; cursor: pointer; position: relative;
+    display: none; align-items: center; justify-content: center;
+    transition: color .2s, border-color .2s;
+  }
+  .dockbtn.show { display: flex; animation: dockin .6s ease-out; }
+  @keyframes dockin { 0% { opacity: 0; transform: translateY(14px); } 60% { opacity: 1; } 100% { transform: none; } }
+  .dockbtn:hover, .dockbtn.open { color: var(--accent); border-color: var(--accent); }
+  .dockbtn .dot {
+    position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); display: none; box-shadow: 0 0 8px var(--accent);
+  }
+  .dockbtn.alert .dot { display: block; }
+
+  #panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw);
+    background: var(--panel); border-left: 1px solid var(--line);
+    transform: translateX(102%); transition: transform .22s ease-out;
+    display: flex; flex-direction: column; z-index: 10;
+  }
+  #panel.open { transform: none; }
+  @media (max-width: 560px) {
+    #panel {
+      top: auto; left: 0; width: 100%; height: 72vh;
+      border-left: none; border-top: 1px solid var(--line);
+      border-radius: 16px 16px 0 0; transform: translateY(103%);
+    }
+    #panel.open { transform: none; }
+  }
+  #phead {
+    padding: 16px 18px; font-size: 12px; letter-spacing: .3em; color: var(--accent);
+    border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center;
+  }
+  #pclose { background: none; border: none; color: var(--dim); font-size: 18px; cursor: pointer; font-family: inherit; padding: 2px 8px; }
+  #pbody { flex: 1; overflow-y: auto; padding: 14px 16px calc(env(safe-area-inset-bottom) + 20px); font-size: 13px; }
+
+  .row {
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  }
+  .row .l { flex: 1; min-width: 0; }
+  .row .name { font-size: 13px; color: var(--fg); }
+  .row .sub { font-size: 11px; color: var(--dim); margin-top: 3px; line-height: 1.5; }
+  .row.codexed .name { color: var(--accent); }
+  .row.unknown { opacity: .5; }
+  .row.cursedr .name { color: var(--hot); }
+  .bigbtn {
+    width: 100%; font-family: inherit; font-size: 14px; letter-spacing: .15em; padding: 14px;
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 10px; cursor: pointer; margin: 10px 0;
+  }
+  .bigbtn:disabled { border-color: var(--line); color: var(--dim); cursor: default; }
+  .bigbtn.danger { border-color: var(--hot); color: var(--hot); }
+  .note { color: var(--dim); font-size: 11.5px; line-height: 1.6; margin: 8px 0; }
+  .stat { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; color: var(--dim); }
+  .stat b { color: var(--fg); font-weight: 500; }
+  h4 { font-size: 11px; letter-spacing: .3em; color: var(--accent); margin: 18px 0 8px; font-weight: 500; }
+  .chip {
+    font-family: inherit; font-size: 11px; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--line); background: transparent; color: var(--dim); cursor: pointer;
+  }
+  .chip.on { border-color: var(--accent); color: var(--accent); }
+  .chip:disabled { opacity: .4; cursor: default; }
+  .chips { display: flex; gap: 6px; margin: 6px 0 12px; flex-wrap: wrap; }
+  .achgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ach { font-size: 10.5px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line); color: var(--dim); }
+  .ach.got { border-color: var(--gold); color: var(--gold); }
+
+  #toasts {
+    position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px; z-index: 30; pointer-events: none; width: min(420px, 92vw);
+  }
+  .toast {
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 10px;
+    padding: 10px 16px; font-size: 12px; text-align: center;
+    animation: toastin .3s ease-out; box-shadow: 0 4px 30px rgba(0, 0, 0, .6);
+  }
+  .toast.gold { border-color: var(--gold); color: var(--gold); }
+  .toast.hot { border-color: var(--hot); color: var(--hot); }
+  .toast.fade { opacity: 0; transition: opacity .5s; }
+  @keyframes toastin { from { opacity: 0; transform: translateY(-10px); } }
+
+  /* author display rules defeat the hidden attribute — force it (the NUMEN lesson) */
+  #draft {
+    position: fixed; inset: 0; background: rgba(3, 6, 10, .88); z-index: 40;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+  }
+  #draft[hidden] { display: none !important; }
+  #draft h2 { font-size: 13px; letter-spacing: .4em; color: var(--accent); font-weight: 500; margin-bottom: 22px; }
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 720px; }
+  .card {
+    width: min(200px, 28vw); min-width: 150px; min-height: 170px; padding: 16px 13px;
+    border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+    color: var(--fg); font-family: inherit; cursor: pointer; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: border-color .15s, transform .15s; animation: cardin .4s ease-out backwards;
+  }
+  .card:nth-child(2) { animation-delay: .08s; } .card:nth-child(3) { animation-delay: .16s; }
+  @keyframes cardin { from { opacity: 0; transform: translateY(16px); } }
+  .card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .card.cursed:hover { border-color: var(--hot); }
+  .card .g { font-size: 30px; color: var(--accent); }
+  .card.cursed .g { color: var(--hot); }
+  .card .n { font-size: 12.5px; letter-spacing: .08em; }
+  .card .d { font-size: 11px; color: var(--dim); line-height: 1.55; }
+  #drift { margin-top: 20px; background: none; border: none; color: var(--dim); font-family: inherit; font-size: 11px; letter-spacing: .25em; cursor: pointer; padding: 8px; }
+  #drift:hover { color: var(--fg); }
+
+  #over {
+    position: fixed; inset: 0; background: rgba(3, 6, 10, .96); z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 30px; overflow-y: auto;
+  }
+  #over[hidden] { display: none !important; }
+  #over h1 { font-size: clamp(20px, 5vw, 38px); letter-spacing: .25em; color: var(--accent); font-weight: 600; }
+  #over h1.drowned { color: var(--hot); }
+  #over p { color: var(--dim); margin: 16px 0; font-size: 12.5px; line-height: 1.9; max-width: 460px; }
+  #over .pearlsum { color: var(--gold); font-size: 15px; letter-spacing: .15em; margin: 4px 0 14px; }
+  #over .chips { justify-content: center; max-width: 480px; }
+  #setout {
+    margin-top: 14px; font-family: inherit; font-size: 14px; letter-spacing: .2em; padding: 15px 38px;
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    border-radius: 10px; cursor: pointer;
+  }
+  #setout:hover { background: rgba(105, 216, 200, .08); }
+</style>
+</head>
+<body>
+
+<div id="field">
+  <canvas id="fx"></canvas>
+  <div id="title">T I D E</div>
+  <div id="moontag"></div>
+  <div id="surfstack">
+    <div id="surf">0</div>
+    <div id="toll"></div>
+    <div id="pearlline"></div>
+    <div id="hint" style="opacity:0"></div>
+  </div>
+  <div id="combo"></div>
+  <div id="phaseword"></div>
+  <div id="relicchips"></div>
+  <div id="dock">
+    <button class="dockbtn show" id="d-rec" data-tab="rec">◉<i class="dot"></i></button>
+    <button class="dockbtn" id="d-codex" data-tab="codex">☵<i class="dot"></i></button>
+    <button class="dockbtn" id="d-moon" data-tab="moon">☾<i class="dot"></i></button>
+    <button class="dockbtn show" id="d-log" data-tab="log">☰<i class="dot"></i></button>
+  </div>
+</div>
+
+<aside id="panel">
+  <div id="phead"><span id="ptitle"></span><button id="pclose">✕</button></div>
+  <div id="pbody"></div>
+</aside>
+
+<div id="toasts"></div>
+<div id="draft" hidden></div>
+<div id="over" hidden></div>
+
+<script>
+'use strict';
+/* ============================================================
+   TIDE — the sea gives, the sea takes.
+   Hardcore-roguelike incremental in one file. The surf value IS
+   your life: waves wash flotsam ashore, what you collect compounds,
+   and every ebb the sea demands a rising toll. Bank in the slack to
+   score pearls — banked value never saves you. Relic drafts can break
+   a run wide open; the toll's exponent always wins in the end.
+   Core is pure & DOM-free (seeded rng, no clocks) so headless
+   harnesses drive this exact file.
+   ============================================================ */
+
+// ---------- balance tables ----------
+const TUNE = {
+  wavesPerMoon: 13,
+  flowDur: 3.0, collectDur: 14.0, slackDur: 3.0, ebbDur: 3.0, moonriseDur: 4.0,
+  slackFloor: 1.65, perfectBase: 0.50, perfectFloor: 0.30, bobBase: 3.2, bobFloor: 1.92,
+  tempoK: 0.97, tempoM: 0.85, tempoFloor: 0.45, winTempoFloor: 0.6, slackTempoFloor: 0.55,
+  tollAtFrac: 0.27,                  // toll fires this fraction into EBB
+  f0: 1000, fGrow: 1.30,             // wave flotsam total value
+  n0: 6, nPerK: 1, nPerM: 2, nCap: 24,
+  t0: 450, tGrow: 1.40, hunger: 1.9, t1: 300,
+  g0: 1.22, carryCap: 1.38,          // compound clamp: must stay < tGrow (death guarantee)
+  u0: 0.12, uFloor: 0.05,
+  bankFrac: 0.30, bankTax: 0.30,
+  comboPer: 0.06, comboCap: 25, maelstromCap: 200,
+  driftChance: 0.08, driftMult: 4,
+  jellyChance: 0.10, jellyCost: 0.03,
+  grace: 0.06, sinkGrace: 0.10,
+  frenzyAt: 25, overflowX: 50,
+  pearlBase: 3, pearlPow: 2.2, perfectPearlMult: 1.25, moonPearlBonus: 0.25,
+  draftEvery: 3, tollFloor: 0.60,
+};
+
+const RELICS = [
+  { id: 'gull',     g: '✶', cursed: 0, name: "Gull's Hoard",     desc: 'Flotsam value ×1.6.' },
+  { id: 'net',      g: '⌘', cursed: 0, name: 'Net of Hours',     desc: '+4 pieces every wave.' },
+  { id: 'lantern',  g: '❖', cursed: 0, name: 'Amber Lantern',    desc: 'Driftwood chance 8% → 25%.' },
+  { id: 'bell',     g: '☗', cursed: 0, name: 'Wreck-Bell',       desc: 'The first 3 pieces of every wave are driftwood.' },
+  { id: 'pelican',  g: '✪', cursed: 0, name: "Pelican's Greed",  desc: 'Driftwood is worth ×10 instead of ×4.' },
+  { id: 'maelstrom',g: '@', cursed: 0, name: 'Maelstrom Heart',  desc: 'The combo cap breaks (×2.5 → unbounded·).' },
+  { id: 'conch',    g: '◎', cursed: 0, name: 'Echo Conch',       desc: 'Every collect also feeds the surf +0.5% of itself.' },
+  { id: 'breaker',  g: '✚', cursed: 0, name: "Breaker's Bounty", desc: 'Driftwood bursts into 2 splinters worth 25% each.' },
+  { id: 'brine',    g: '≈', cursed: 0, name: 'Moon-Kissed Brine',desc: 'Surf compounds +6% per wave.' },
+  { id: 'eddy',     g: '◌', cursed: 0, name: 'Deep Eddy',        desc: 'Surf compounds +8% per wave.' },
+  { id: 'kelp',     g: '⌇', cursed: 1, name: 'Kelp Anchor',      desc: 'Undertow −5pp · the slack shortens 20%.' },
+  { id: 'mop',      g: '◍', cursed: 0, name: 'Mother-of-Pearl',  desc: 'Pearls gained ×1.3.' },
+  { id: 'charm',    g: '☽', cursed: 0, name: 'Slack Charm',      desc: 'The perfect window lasts +60%.' },
+  { id: 'pouch',    g: '◇', cursed: 0, name: "Smuggler's Pouch", desc: 'Bank tax 30% → 18%.' },
+  { id: 'locket',   g: '∞', cursed: 0, name: 'Twin Moons Locket',desc: 'Perfect banks also grant +5 combo.' },
+  { id: 'tithe',    g: '♆', cursed: 0, name: 'Salt Tithe',       desc: 'All tolls −15%.' },
+  { id: 'debt',     g: '☠', cursed: 0, name: 'Old Debt',         desc: 'The next 3 tolls are halved. Then it crumbles.' },
+  { id: 'witch',    g: '☥', cursed: 0, name: 'Witchbone Charm',  desc: 'Once per moon, an unpayable toll is forgiven — the sea takes everything instead (surf → 0).' },
+  { id: 'stillbell',g: '◴', cursed: 0, name: 'Stillwater Bell',  desc: 'The slack lasts +30%, the ebb +25%.' },
+  { id: 'siren',    g: '♀', cursed: 1, name: "Siren's Bell",     desc: 'Flotsam ×2.5 · the perfect window halves.' },
+  { id: 'crown',    g: '♔', cursed: 1, name: 'Drowned Crown',    desc: 'Surf compounds +10% · future drafts offer only 2.' },
+  { id: 'fever',    g: '☵', cursed: 1, name: 'Pearl Fever',      desc: 'Pearls ×1.6 · every bank burns an extra 6% of the surf.' },
+  { id: 'drunk',    g: '↯', cursed: 1, name: 'Moon-Drunk Tide',  desc: 'Tolls −25% · everything moves 15% faster, forever.' },
+  { id: 'wake',     g: '≋', cursed: 1, name: "Leviathan's Wake", desc: 'Flotsam ×3 · tolls ×1.5.' },
+];
+
+const PHASES = [
+  { id: 'full',    name: 'Full Moon',    pm: 1.0,  desc: 'The standard sea.', unlock: null },
+  { id: 'still',   name: 'Still Moon',   pm: 0.75, desc: 'A slower sea that pulls harder. Tempo +25% · undertow 20%.', unlock: 'drown 3 times' },
+  { id: 'blood',   name: 'Blood Moon',   pm: 1.15, desc: 'Tolls ×2 · flotsam ×2.5.', unlock: 'reach moon II' },
+  { id: 'harvest', name: 'Harvest Moon', pm: 1.10, desc: 'Twice the pieces at half the value · brief bobs.', unlock: 'collect 1,000 flotsam (lifetime)' },
+  { id: 'wolf',    name: 'Wolf Moon',    pm: 1.20, desc: 'Combo cap 40 · every sunk piece bites 3% of the surf.', unlock: 'reach combo 25' },
+  { id: 'mirror',  name: 'Mirror Moon',  pm: 1.25, desc: 'The slack comes BEFORE the wave — bank on faith. Perfect window +50%.', unlock: '50 perfect banks (lifetime)' },
+  { id: 'black',   name: 'Black Moon',   pm: 1.40, desc: 'The toll is hidden. Listen for your heart.', unlock: 'drown 10 times' },
+];
+
+const MARKS = [
+  { id: 'pearl1',   name: 'First Pearl' },
+  { id: 'perfect1', name: 'Perfect Slack' },
+  { id: 'sweep',    name: 'Clean Sweep' },
+  { id: 'combo10',  name: 'Ten in Rhythm' },
+  { id: 'combo25',  name: 'Tidebound' },
+  { id: 'moon2',    name: 'Moonrise' },
+  { id: 'moon3',    name: 'The Long Ebb' },
+  { id: 'skinflint',name: 'Skinflint' },
+  { id: 'brink',    name: 'Brinkmanship' },
+  { id: 'pearl100', name: 'Pearl Hundred' },
+  { id: 'life1k',   name: 'Mother Lode' },
+  { id: 'relic7',   name: 'Relic Rat' },
+  { id: 'cursed3',  name: 'Cursed Crown' },
+  { id: 'untouched',name: 'Untouched' },
+  { id: 'drown12',  name: 'Drowned Dozen' },
+  { id: 'codex24',  name: 'Deep Codex' },
+  { id: 'tidalgod', name: 'Tidal God' },
+  { id: 'break9',   name: 'Break the Sea' },
+  { id: 'mael60',   name: 'Maelstrom' },
+];
+
+// ---------- seeded rng (mulberry32; ALL run randomness flows through R.rs) ----------
+function mulberry(s) {
+  s |= 0; s = (s + 0x6D2B79F5) | 0;
+  let t = Math.imul(s ^ (s >>> 15), 1 | s);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return [(((t ^ (t >>> 14)) >>> 0) / 4294967296), s];
+}
+function rng(R) { const [v, s] = mulberry(R.rs); R.rs = s; return v; }
+
+// ---------- meta state (the ONLY thing that persists; zero power) ----------
+const META_KEY = 'tide-meta-v1', RUN_KEY = 'tide-run-v1';
+function freshMeta() {
+  return {
+    v: 1, sound: true, runs: 0, drownings: 0,
+    lifePearls: 0, lifeFlotsam: 0, perfectBanks: 0, bestCombo: 0, maxSurfEver: 0,
+    bestPearls: {}, bestWave: {}, lastPhase: 'full',
+    codex: {}, marks: {}, seenHow: false,
+    last: null, // { pearls, K, m, phase, cause }
+  };
+}
+let M = freshMeta();
+function loadMeta() {
+  try {
+    const raw = localStorage.getItem(META_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    const f = freshMeta();
+    for (const k of Object.keys(f)) if (k in d) f[k] = d[k];
+    M = f;
+  } catch (e) { /* corrupted: start fresh */ }
+}
+function saveMeta() { try { localStorage.setItem(META_KEY, JSON.stringify(M)); } catch (e) {} }
+
+// ---------- formatting ----------
+const SUFF = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+function fmt(n) {
+  if (!isFinite(n)) return '∞';
+  if (n < 0) return '-' + fmt(-n);
+  if (n < 1000) return n >= 100 || n % 1 === 0 ? String(Math.floor(n)) : n.toFixed(1);
+  if (n < 1e6) return Math.floor(n).toLocaleString('en-US');
+  const e = Math.floor(Math.log10(n));
+  const t = Math.floor(e / 3);
+  if (t < SUFF.length) {
+    const m = n / Math.pow(10, t * 3);
+    return (m >= 100 ? m.toFixed(0) : m >= 10 ? m.toFixed(1) : m.toFixed(2)) + SUFF[t];
+  }
+  return (n / Math.pow(10, e)).toFixed(2) + 'e' + e;
+}
+function fmtP(p) { return p < 100 ? (Math.round(p * 10) / 10).toString() : fmt(Math.round(p)); }
+
+// ============================================================
+// PURE CORE — no DOM, no clocks, no unseeded randomness.
+// advance(R, dt) is THE state machine; it returns events.
+// ============================================================
+
+function newRun(phaseId, seed) {
+  return {
+    v: 1, phaseId: phaseId || 'full', seed: seed >>> 0, rs: seed >>> 0,
+    K: 1, m: 1, k: 1,
+    ph: 'flow', phT: 0, clock: 0,
+    surf: 0, pearls: 0, banked: 0,
+    combo: 0, bestCombo: 0,
+    relics: [], crumbled: [],
+    pieces: [], spawnedWave: false, splinters: 0,
+    draft: null, over: null,
+    witchUsed: false, debtLeft: 0,
+    banksThisWave: 0, collectedThisWave: 0, sunkThisWave: 0,
+    stats: { collected: 0, sunk: 0, banks: 0, perfects: 0, jellies: 0, drift: 0, frenzies: 0, maxSurf: 0, cleanWaves: 0, untouchedWaves: 0, overflowBanks: 0 },
+  };
+}
+function has(R, id) { return R.relics.indexOf(id) >= 0; }
+
+// effective stats from relics + moon phase (the only place modifiers live)
+function compute(R) {
+  const P = PHASES.find(p => p.id === R.phaseId) || PHASES[0];
+  const C = {
+    phase: P, order: P.id === 'mirror' ? ['flow', 'slack', 'collect', 'ebb'] : ['flow', 'collect', 'slack', 'ebb'],
+    tempoScale: (has(R, 'drunk') ? 0.85 : 1) * (P.id === 'still' ? 1.25 : 1),
+    slackScale: (has(R, 'stillbell') ? 1.3 : 1) * (has(R, 'kelp') ? 0.8 : 1),
+    ebbScale: has(R, 'stillbell') ? 1.25 : 1,
+    perfectScale: (has(R, 'charm') ? 1.6 : 1) * (has(R, 'siren') ? 0.5 : 1) * (P.id === 'mirror' ? 1.5 : 1),
+    bobScale: P.id === 'harvest' ? 0.75 : 1,
+    piecesBonus: has(R, 'net') ? 4 : 0,
+    piecesScale: P.id === 'harvest' ? 2 : 1,
+    nCap: TUNE.nCap * (P.id === 'harvest' ? 2 : 1),
+    fMult: (has(R, 'gull') ? 1.6 : 1) * (has(R, 'siren') ? 2.5 : 1) * (has(R, 'wake') ? 3 : 1) * (P.id === 'blood' ? 2.5 : 1),
+    driftChance: has(R, 'lantern') ? 0.25 : TUNE.driftChance,
+    driftMult: has(R, 'pelican') ? 10 : TUNE.driftMult,
+    jellyChance: TUNE.jellyChance,
+    u: Math.max(TUNE.uFloor, (P.id === 'still' ? 0.20 : TUNE.u0) - (has(R, 'kelp') ? 0.05 : 0)),
+    tax: has(R, 'pouch') ? 0.18 : TUNE.bankTax,
+    pearlMult: (has(R, 'mop') ? 1.3 : 1) * (has(R, 'fever') ? 1.6 : 1) * P.pm,
+    comboCap: has(R, 'maelstrom') ? TUNE.maelstromCap : (P.id === 'wolf' ? 40 : TUNE.comboCap),
+    offersN: has(R, 'crown') ? 2 : 3,
+    feverBurn: has(R, 'fever') ? 0.06 : 0,
+    wolfBite: P.id === 'wolf' ? 0.03 : 0,
+    hideToll: P.id === 'black',
+  };
+  // toll: floored reduction product, then up-multipliers (never below floor in net reductions)
+  const red = Math.max(TUNE.tollFloor, (has(R, 'tithe') ? 0.85 : 1) * (has(R, 'drunk') ? 0.75 : 1));
+  C.tollMult = red * (has(R, 'wake') ? 1.5 : 1) * (P.id === 'blood' ? 2 : 1) * (R.debtLeft > 0 ? 0.5 : 1);
+  // carry clamp — THE death guarantee: per-wave carry (compound × conch feedback)
+  // must stay below the toll growth base 1.40, no matter the relic stack.
+  let g = TUNE.g0 + (has(R, 'brine') ? 0.06 : 0) + (has(R, 'eddy') ? 0.08 : 0) + (has(R, 'crown') ? 0.10 : 0);
+  C.clamped = g > TUNE.carryCap;
+  C.g = Math.min(TUNE.carryCap, g);
+  C.conchPct = has(R, 'conch')
+    ? Math.max(0, Math.min(0.005, Math.pow(TUNE.carryCap / C.g, 1 / C.nCap) - 1)) : 0;
+  return C;
+}
+
+function tempo(R, C) {
+  return Math.max(TUNE.tempoFloor,
+    Math.pow(TUNE.tempoK, R.k - 1) * Math.pow(TUNE.tempoM, R.m - 1)) * C.tempoScale;
+}
+function waveParams(R, C) {
+  const t = tempo(R, C);
+  const tw = Math.max(TUNE.winTempoFloor, t);
+  const N = Math.min(C.nCap, Math.round((TUNE.n0 + TUNE.nPerK * (R.k - 1) + TUNE.nPerM * (R.m - 1) + C.piecesBonus) * C.piecesScale));
+  const F = TUNE.f0 * Math.pow(TUNE.fGrow, R.K - 1) * C.fMult / C.piecesScale; // harvest: halve values via double pieces
+  const T = (R.K === 1 ? TUNE.t1 : TUNE.t0 * Math.pow(TUNE.tGrow, R.K - 1)) * Math.pow(TUNE.hunger, R.m - 1) * C.tollMult;
+  return {
+    t, N, F: F * C.piecesScale, T, // F reported as the full wave total
+    flow: TUNE.flowDur * t,
+    collect: TUNE.collectDur * t,
+    slack: Math.max(TUNE.slackFloor, TUNE.slackDur * Math.max(TUNE.slackTempoFloor, t) * C.slackScale),
+    ebb: TUNE.ebbDur * t * C.ebbScale,
+    perfect: Math.max(TUNE.perfectFloor, TUNE.perfectBase * tw * C.perfectScale),
+    bob: Math.max(TUNE.bobFloor, TUNE.bobBase * tw * (has(R, 'bell') ? 1 : 1) * C.bobScale),
+  };
+}
+function phaseDur(R, C, W) {
+  return R.ph === 'flow' ? W.flow : R.ph === 'collect' ? W.collect :
+         R.ph === 'slack' ? W.slack : R.ph === 'ebb' ? W.ebb : TUNE.moonriseDur;
+}
+function comboMult(R, C) { return 1 + TUNE.comboPer * Math.min(C.comboCap, R.combo); }
+
+function spawnWave(R, C, W) {
+  R.pieces = []; R.splinters = 0; R.spawnedWave = true;
+  R.collectedThisWave = 0; R.sunkThisWave = 0; R.banksThisWave = R.banksThisWave || 0;
+  const vals = [], kinds = [];
+  let sum = 0;
+  for (let i = 0; i < W.N; i++) {
+    let kind = 'f';
+    if (has(R, 'bell') && i < 3) kind = 'd';
+    else if (R.m >= 2 && rng(R) < C.jellyChance) kind = 'j';
+    else if (rng(R) < C.driftChance) kind = 'd';
+    kinds.push(kind);
+    const v = kind === 'j' ? 0 : (0.7 + rng(R) * 0.7);
+    vals.push(v); sum += v;
+  }
+  const per = sum > 0 ? W.F / sum : 0;
+  for (let i = 0; i < W.N; i++) {
+    R.pieces.push({
+      id: i, kind: kinds[i],
+      val: kinds[i] === 'j' ? 0 : vals[i] * per * (kinds[i] === 'd' ? C.driftMult : 1),
+      x: 0.06 + rng(R) * 0.86, y: 0.52 + rng(R) * 0.2,
+      at: rng(R) * W.collect * 0.6, bob: W.bob * (0.85 + rng(R) * 0.3),
+      live: false, gone: false,
+    });
+  }
+}
+
+function sinkPiece(R, C, p, ev) {
+  p.live = false; p.gone = true;
+  if (p.kind !== 'j') {
+    R.sunkThisWave++; R.stats.sunk++;
+    const hadCombo = R.combo;
+    R.combo = 0;
+    let bite = 0;
+    if (C.wolfBite > 0) { bite = R.surf * C.wolfBite; R.surf -= bite; }
+    ev.push({ t: 'sink', p, hadCombo, bite });
+  } else { ev.push({ t: 'sink', p, hadCombo: 0, bite: 0 }); }
+}
+
+function tapPiece(R, id) {
+  if (R.over || R.draft || (R.ph !== 'collect')) return null;
+  const C = compute(R);
+  const p = R.pieces.find(q => q.id === id && q.live);
+  if (!p) return null;
+  p.live = false; p.gone = true;
+  if (p.kind === 'j') {
+    const cost = R.surf * TUNE.jellyCost;
+    R.surf -= cost; R.combo = 0; R.stats.jellies++;
+    return { t: 'jelly', p, cost };
+  }
+  const wasBelow = R.combo < TUNE.frenzyAt;
+  R.combo++; R.bestCombo = Math.max(R.bestCombo, R.combo);
+  const gain = p.val * comboMult(R, C);
+  R.surf += gain;
+  let conch = 0;
+  if (C.conchPct > 0) { conch = R.surf * C.conchPct; R.surf += conch; }
+  R.collectedThisWave++; R.stats.collected++;
+  if (p.kind === 'd') R.stats.drift++;
+  const ev = { t: 'collect', p, gain, conch, combo: R.combo, frenzy: false, splinters: [] };
+  if (wasBelow && R.combo >= TUNE.frenzyAt) { ev.frenzy = true; R.stats.frenzies++; }
+  // Breaker's Bounty: driftwood bursts into tappable splinters (capped per wave)
+  if (p.kind === 'd' && has(R, 'breaker') && R.splinters < 12) {
+    const W = waveParams(R, C);
+    for (let s = 0; s < 2 && R.splinters < 12; s++) {
+      R.splinters++;
+      const sp = {
+        id: 1000 + R.K * 50 + R.splinters, kind: 'f', val: p.val * 0.25,
+        x: Math.min(0.94, Math.max(0.06, p.x + (rng(R) - 0.5) * 0.16)),
+        y: Math.min(0.74, Math.max(0.5, p.y + (rng(R) - 0.5) * 0.1)),
+        at: R.phT, bob: W.bob * 0.8, live: true, gone: false, splinter: true,
+      };
+      R.pieces.push(sp); ev.splinters.push(sp);
+    }
+  }
+  R.stats.maxSurf = Math.max(R.stats.maxSurf, R.surf);
+  return ev;
+}
+
+// bank during slack; agoSec = seconds between the input event and now (touch latency comp)
+function bankTap(R, agoSec) {
+  if (R.over || R.draft || R.ph !== 'slack' || R.surf <= 0) return null;
+  const C = compute(R);
+  const W = waveParams(R, C);
+  const phE = Math.max(0, R.phT - (agoSec || 0));
+  const center = W.slack / 2, half = W.perfect / 2 + TUNE.grace;
+  const perfect = Math.abs(phE - center) <= half;
+  const surf0 = R.surf, T = W.T;
+  const B = R.surf * TUNE.bankFrac;
+  R.surf -= B;
+  if (C.feverBurn > 0) R.surf *= (1 - C.feverBurn);
+  const eff = B * (perfect ? 1 : (1 - C.tax));
+  const moonMult = 1 + TUNE.moonPearlBonus * (R.m - 1);
+  const dP = (pearlsFor(R.banked + eff) - pearlsFor(R.banked))
+    * (perfect ? TUNE.perfectPearlMult : 1) * C.pearlMult * moonMult;
+  R.banked += eff; R.pearls += dP;
+  R.banksThisWave++; R.stats.banks++;
+  if (perfect) { R.stats.perfects++; if (has(R, 'locket')) R.combo += 5; }
+  const overflow = T > 0 && surf0 >= TUNE.overflowX * T;
+  if (overflow) R.stats.overflowBanks++;
+  return { t: 'bank', B, eff, dP, perfect, overflow, tax: perfect ? 0 : C.tax };
+}
+
+function pearlsFor(Cm) {
+  return TUNE.pearlBase * Math.pow(Math.max(0, Math.log10(1 + Math.max(0, Cm)) - 1), TUNE.pearlPow);
+}
+
+function resolveToll(R, C, W, ev) {
+  const T = W.T;
+  if (R.surf >= 5 * T && R.banksThisWave === 0) ev.push({ t: 'mark', id: 'skinflint' });
+  if (R.surf >= T) {
+    R.surf -= T;
+    if (R.surf < 0.05 * T) ev.push({ t: 'mark', id: 'brink' });
+    ev.push({ t: 'toll', T, ok: true });
+  } else if (has(R, 'witch') && !R.witchUsed) {
+    R.witchUsed = true; R.surf = 0;
+    ev.push({ t: 'witch', T });
+  } else {
+    R.over = { cause: 'drown', K: R.K, m: R.m, k: R.k, T, had: R.surf };
+    ev.push({ t: 'toll', T, ok: false });
+    ev.push({ t: 'drown' });
+  }
+}
+
+function draftOffers(R, C) {
+  const pool = RELICS.map(r => r.id).filter(id => !has(R, id) && R.crumbled.indexOf(id) < 0);
+  // seeded shuffle
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rng(R) * (i + 1));
+    const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+  }
+  return pool.slice(0, Math.min(C.offersN, pool.length));
+}
+function chooseRelic(R, id) {
+  if (!R.draft || (id && R.draft.offers.indexOf(id) < 0)) return null;
+  if (id) {
+    R.relics.push(id);
+    if (id === 'debt') R.debtLeft = 3;
+  }
+  R.draft = null;
+  return { t: 'drafted', id };
+}
+
+function endEbb(R, C, ev) {
+  // undertow drains AFTER the toll
+  const drain = R.surf * C.u;
+  R.surf -= drain;
+  ev.push({ t: 'undertow', drain });
+  if (R.debtLeft > 0) {
+    R.debtLeft--;
+    if (R.debtLeft === 0) {
+      R.relics = R.relics.filter(x => x !== 'debt');
+      R.crumbled.push('debt');
+      ev.push({ t: 'crumble', id: 'debt' });
+    }
+  }
+  if (R.collectedThisWave === 0 && R.sunkThisWave > 0) { R.stats.untouchedWaves++; ev.push({ t: 'mark', id: 'untouched' }); }
+  if (R.sunkThisWave === 0 && R.collectedThisWave > 0) R.stats.cleanWaves++;
+  const doneK = R.k;
+  R.K++;
+  R.banksThisWave = 0;
+  if (doneK % TUNE.draftEvery === 0 && doneK < TUNE.wavesPerMoon) {
+    R.draft = { offers: draftOffers(R, C), atK: R.K - 1 };
+    ev.push({ t: 'draft', offers: R.draft.offers });
+  }
+  if (doneK === TUNE.wavesPerMoon) {
+    R.m++; R.k = 1; R.witchUsed = false;
+    R.ph = 'moonrise'; R.phT = 0;
+    ev.push({ t: 'moonrise', m: R.m });
+  } else {
+    R.k++;
+    R.ph = 'flow'; R.phT = 0;
+    ev.push({ t: 'wave', K: R.K, m: R.m, k: R.k });
+  }
+}
+
+function enterPhase(R, C, W, ph, ev) {
+  R.ph = ph; R.phT = 0;
+  if (ph === 'flow') {
+    const gain = R.surf * (C.g - 1);
+    R.surf += gain;
+    R.stats.maxSurf = Math.max(R.stats.maxSurf, R.surf);
+    R.spawnedWave = false;
+    ev.push({ t: 'flow', gain, clamped: C.clamped });
+  } else if (ph === 'collect') {
+    spawnWave(R, C, W);
+    ev.push({ t: 'crash', N: W.N, F: W.F });
+  } else if (ph === 'slack') {
+    ev.push({ t: 'slack', dur: W.slack, perfect: W.perfect });
+  } else if (ph === 'ebb') {
+    ev.push({ t: 'ebb', T: W.T });
+  }
+}
+
+function advance(R, dt) {
+  const ev = [];
+  if (R.over || R.draft) return ev;
+  let rem = dt;
+  let guard = 0;
+  while (rem > 1e-9 && guard++ < 4000) {
+    const C = compute(R);
+    const W = waveParams(R, C);
+    const dur = phaseDur(R, C, W);
+    const left = dur - R.phT;
+    const step = Math.min(rem, Math.max(1e-6, left), 0.1);
+    const t0 = R.phT;
+    R.phT += step; R.clock += step; rem -= step;
+    if (R.ph === 'collect') {
+      for (const p of R.pieces) {
+        if (!p.gone && !p.live && p.at <= R.phT) { p.live = true; ev.push({ t: 'spawn', p }); }
+        if (p.live && R.phT >= p.at + p.bob + TUNE.sinkGrace) sinkPiece(R, C, p, ev);
+      }
+    }
+    if (R.ph === 'ebb') {
+      const tollT = W.ebb * TUNE.tollAtFrac;
+      if (t0 < tollT && R.phT >= tollT) {
+        resolveToll(R, C, W, ev);
+        if (R.over) return ev;
+      }
+    }
+    if (R.phT >= dur - 1e-9) {
+      if (R.ph === 'ebb') {
+        // sink anything missed (mirror moon: collect is last — handled by its own phase end)
+        endEbb(R, C, ev);
+      } else if (R.ph === 'moonrise') {
+        enterPhase(R, C, W, 'flow', ev);
+        ev.push({ t: 'wave', K: R.K, m: R.m, k: R.k });
+      } else {
+        const idx = C.order.indexOf(R.ph);
+        const next = C.order[idx + 1];
+        if (R.ph === 'collect') for (const p of R.pieces) if (p.live) sinkPiece(R, C, p, ev);
+        enterPhase(R, C, W, next, ev);
+      }
+      if (R.draft || R.over) return ev;
+    }
+  }
+  return ev;
+}
+
+// hit-test in fraction coords; rFrac = touch radius as a fraction of width
+function tapAt(R, fx, fy, rFrac) {
+  if (R.ph !== 'collect') return null;
+  let best = null, bd = (rFrac || 0.06) * (rFrac || 0.06) * 4;
+  for (const p of R.pieces) {
+    if (!p.live) continue;
+    const dx = p.x - fx, dy = (p.y - fy) * 1.2;
+    const d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best ? tapPiece(R, best.id) : null;
+}
+
+// ============================================================
+// DOM LAYER (everything below touches the screen / clock / audio)
+// ============================================================
+
+// ---------- ui refs ----------
+const field = document.getElementById('field');
+const surfEl = document.getElementById('surf');
+const tollEl = document.getElementById('toll');
+const pearlEl = document.getElementById('pearlline');
+const hintEl = document.getElementById('hint');
+const comboEl = document.getElementById('combo');
+const moontag = document.getElementById('moontag');
+const phaseword = document.getElementById('phaseword');
+const chipsEl = document.getElementById('relicchips');
+const panel = document.getElementById('panel');
+const ptitle = document.getElementById('ptitle');
+const pbody = document.getElementById('pbody');
+const toastsEl = document.getElementById('toasts');
+const draftEl = document.getElementById('draft');
+const overEl = document.getElementById('over');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let R = null; // the live run (null = on the shore)
+
+// ---------- particles ----------
+const fx = document.getElementById('fx');
+const ctx = fx.getContext('2d');
+let parts = [];
+function resizeFx() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  fx.width = innerWidth * dpr; fx.height = innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resizeFx); resizeFx();
+
+function pop(x, y, txt, kind) { // kind: '', 'gold', 'hot', 'dim'
+  const cap = reducedMotion ? 40 : 220;
+  if (parts.length > cap) parts.shift();
+  parts.push({
+    x: x + (Math.random() - 0.5) * 26, y: y - 8 - Math.random() * 16,
+    vx: (Math.random() - 0.5) * 26, vy: -52 - Math.random() * 38,
+    t: 0, life: kind === 'gold' ? 1.4 : 1.05,
+    txt, kind: kind || '',
+    size: (kind === 'gold' ? 19 : kind === 'dim' ? 12 : 14) + Math.min(9, R ? Math.log10(1 + R.surf) / 2 : 0),
+  });
+}
+function drainPop(x, y, txt) {
+  const cap = reducedMotion ? 40 : 220;
+  if (parts.length > cap) parts.shift();
+  parts.push({ x, y, vx: (Math.random() - 0.5) * 14, vy: 60 + Math.random() * 40, t: 0, life: 1.0, txt, kind: 'hot', size: 13 });
+}
+function burst(cx, cy, n, txt, kind) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+    parts.push({ x: cx, y: cy, vx: Math.cos(a) * (90 + Math.random() * 70), vy: Math.sin(a) * (90 + Math.random() * 70) - 30, t: 0, life: 1.1, txt, kind: kind || 'gold', size: 15 });
+  }
+}
+const COL = { '': '#69d8c8', gold: '#ffcc66', hot: '#ff7a5c', dim: '#51626a' };
+function drawParts(dt) {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.t += dt;
+    if (p.t >= p.life) { parts.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 16 * dt;
+    const k = p.t / p.life;
+    ctx.globalAlpha = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+    ctx.font = (p.size * (1 + k * 0.1)) + 'px ui-monospace, Menlo, Consolas, monospace';
+    ctx.fillStyle = COL[p.kind] || COL[''];
+    ctx.textAlign = 'center';
+    ctx.fillText(p.txt, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- waterline ----------
+let waterT = 0;
+function waterBase() {
+  if (!R || R.over) return 0.66;
+  if (R.ph === 'flow') return 0.66 - 0.09 * Math.min(1, R.phT / Math.max(0.4, phaseDur(R, compute(R), waveParams(R, compute(R)))));
+  if (R.ph === 'collect') return 0.57;
+  if (R.ph === 'slack') return 0.575;
+  if (R.ph === 'ebb') return 0.575 + 0.105 * Math.min(1, R.phT / Math.max(0.4, phaseDur(R, compute(R), waveParams(R, compute(R)))));
+  return 0.62; // moonrise
+}
+let waterYS = 0.66;
+function drawWater(dt) {
+  waterT += dt;
+  waterYS += (waterBase() - waterYS) * Math.min(1, dt * 4);
+  const W = innerWidth, H = innerHeight;
+  const slackGlow = R && !R.over && R.ph === 'slack';
+  const layers = [
+    { a: 7, sp: 0.7, ln: 0.012, col: 'rgba(105,216,200,.20)' },
+    { a: 4, sp: 1.3, ln: 0.020, col: 'rgba(105,216,200,.34)' },
+    { a: 10, sp: 0.4, ln: 0.007, col: 'rgba(105,216,200,.12)' },
+  ];
+  for (const L of layers) {
+    ctx.beginPath();
+    const amp = slackGlow ? L.a * 0.25 : L.a;
+    for (let x = 0; x <= W; x += 6) {
+      const y = waterYS * H + Math.sin(x * L.ln + waterT * L.sp) * amp + Math.sin(x * L.ln * 2.7 + waterT * L.sp * 1.7) * amp * 0.4;
+      x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = slackGlow ? 'rgba(105,216,200,.55)' : L.col;
+    ctx.lineWidth = slackGlow ? 1.6 : 1.1;
+    ctx.stroke();
+  }
+  // foam flecks
+  ctx.fillStyle = 'rgba(230,240,238,.25)';
+  for (let i = 0; i < 14; i++) {
+    const fxp = ((i * 137 + waterT * 30 * (i % 3 + 1)) % (W + 40)) - 20;
+    const fyp = waterYS * H + Math.sin(fxp * 0.02 + waterT + i) * 6;
+    ctx.fillRect(fxp, fyp, 2, 2);
+  }
+  // perfect-window tick during slack
+  if (slackGlow) {
+    const C = compute(R), Wp = waveParams(R, C);
+    const c = Wp.slack / 2, half = Wp.perfect / 2;
+    const inWin = Math.abs(R.phT - c) <= half + TUNE.grace;
+    const prog = R.phT / Wp.slack;
+    ctx.fillStyle = inWin ? 'rgba(255,204,102,.9)' : 'rgba(105,216,200,.5)';
+    ctx.fillRect(W * 0.5 - 60 + prog * 120, waterYS * H - 22, 2, 10);
+    ctx.fillStyle = 'rgba(255,204,102,.45)';
+    const x0 = W * 0.5 - 60 + ((c - half) / Wp.slack) * 120, x1 = W * 0.5 - 60 + ((c + half) / Wp.slack) * 120;
+    ctx.fillRect(x0, waterYS * H - 14, x1 - x0, 1.5);
+  }
+}
+
+// ---------- flotsam sprites ----------
+const KGLYPH = { f: '✶', d: '✪', j: '✺' };
+function drawPieces(dt) {
+  if (!R || R.ph !== 'collect') return;
+  const W = innerWidth, H = innerHeight;
+  for (const p of R.pieces) {
+    if (!p.live) continue;
+    const age = R.phT - p.at;
+    const lifeFrac = age / (p.bob + TUNE.sinkGrace);
+    const bobY = Math.sin(waterT * 2.2 + p.id * 1.7) * 5;
+    const px = p.x * W, py = p.y * H + bobY + (lifeFrac > 0.8 ? (lifeFrac - 0.8) * 60 : 0);
+    const a = lifeFrac > 0.75 ? Math.max(0.15, 1 - (lifeFrac - 0.75) * 3.4) : (age < 0.25 ? age / 0.25 : 1);
+    ctx.globalAlpha = a;
+    const sz = p.kind === 'd' ? 30 : p.kind === 'j' ? 26 : 26;
+    ctx.font = sz + 'px ui-monospace, Menlo, Consolas, monospace';
+    ctx.fillStyle = p.kind === 'd' ? '#ffcc66' : p.kind === 'j' ? '#ff7a5c' : '#69d8c8';
+    ctx.textAlign = 'center';
+    ctx.fillText(KGLYPH[p.kind], px, py);
+    if (p.kind !== 'j' && lifeFrac > 0.6) { // sinking warning ring
+      ctx.globalAlpha = a * 0.5;
+      ctx.beginPath(); ctx.arc(px, py - sz * 0.35, sz * 0.75 * (1.4 - lifeFrac * 0.4), 0, Math.PI * 2);
+      ctx.strokeStyle = '#ff7a5c'; ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- sound (webaudio synth, zero assets; must fail silent) ----------
+let AC = null, noiseBuf = null;
+function ac() {
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch (e) {}
+  return AC;
+}
+function tone(freq, dur, type, gainV, when) {
+  const a = ac();
+  if (!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  const t = a.currentTime + (when || 0);
+  o.type = type || 'sine'; o.frequency.value = freq;
+  g.gain.setValueAtTime(gainV, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function noiseSrc() {
+  const a = ac(); if (!a) return null;
+  if (!noiseBuf) {
+    const len = a.sampleRate * 2;
+    noiseBuf = a.createBuffer(1, len, a.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+  }
+  const s = a.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  return s;
+}
+function swell(dur, peak) {
+  if (!M.sound) return;
+  try {
+    const a = ac(); if (!a) return;
+    const src = noiseSrc(); if (!src) return;
+    const f = a.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 380;
+    const g = a.createGain();
+    const t = a.currentTime + 0.03;
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.exponentialRampToValueAtTime(peak || 0.06, t + dur * 0.45);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    src.connect(f); f.connect(g); g.connect(a.destination);
+    src.start(t); src.stop(t + dur + 0.1);
+  } catch (e) {}
+}
+const PENTA = [220, 261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25, 783.99, 880];
+function sfx(kind, x) {
+  if (!M.sound) return;
+  try {
+    if (kind === 'plink') {
+      const i = Math.min(PENTA.length - 1, Math.floor((x || 0) / 2.5));
+      tone(PENTA[i], 0.07, 'sine', 0.05);
+      if (R && R.combo >= TUNE.frenzyAt) tone(PENTA[i] * 2, 0.06, 'triangle', 0.03, 0.03);
+    }
+    else if (kind === 'drift') { tone(660, 0.08, 'triangle', 0.055); tone(990, 0.1, 'sine', 0.045, 0.05); }
+    else if (kind === 'jelly') { tone(196, 0.18, 'sawtooth', 0.04); tone(207, 0.18, 'sawtooth', 0.04); }
+    else if (kind === 'bank') { tone(523, 0.1, 'sine', 0.05); tone(784, 0.14, 'sine', 0.045, 0.05); }
+    else if (kind === 'perfect') { tone(523, 0.1, 'sine', 0.05); tone(784, 0.12, 'sine', 0.05, 0.04); tone(1046, 0.18, 'sine', 0.045, 0.1); }
+    else if (kind === 'thoom') { tone(55, 0.55, 'sine', 0.12); tone(38, 0.7, 'sine', 0.09, 0.1); }
+    else if (kind === 'witch') { tone(110, 0.4, 'triangle', 0.06); tone(165, 0.5, 'sine', 0.05, 0.15); }
+    else if (kind === 'drown') { swell(2.2, 0.1); tone(82, 1.4, 'sine', 0.08); tone(55, 1.8, 'sine', 0.07, 0.3); }
+    else if (kind === 'bell') { tone(660, 0.25, 'triangle', 0.05); tone(880, 0.35, 'sine', 0.04, 0.12); }
+    else if (kind === 'moon') { tone(110, 0.8, 'sine', 0.06); tone(165, 0.9, 'sine', 0.05, 0.2); tone(220, 1.0, 'sine', 0.04, 0.4); }
+    else if (kind === 'mark') { tone(523, 0.12, 'triangle', 0.05); tone(784, 0.2, 'sine', 0.05, 0.1); }
+    else if (kind === 'beat') { tone(60, 0.09, 'sine', 0.09); tone(60, 0.08, 'sine', 0.07, 0.16); }
+    else if (kind === 'splash') { tone(160 + Math.random() * 30, 0.05, 'sine', 0.02); }
+  } catch (e) {}
+}
+
+// ---------- toasts ----------
+function toast(msg, kind) {
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = msg;
+  toastsEl.appendChild(el);
+  while (toastsEl.children.length > 4) toastsEl.firstChild.remove();
+  setTimeout(() => { el.classList.add('fade'); setTimeout(() => el.remove(), 600); }, 3400);
+}
+
+// ---------- marks ----------
+function grantMark(id) {
+  if (M.marks[id]) return;
+  const mk = MARKS.find(m => m.id === id);
+  if (!mk) return;
+  M.marks[id] = true;
+  toast('MARK — ' + mk.name, 'gold');
+  sfx('mark');
+  saveMeta();
+}
+function checkLiveMarks() {
+  if (!R) return;
+  if (R.pearls > 0) grantMark('pearl1');
+  if (R.stats.perfects > 0) grantMark('perfect1');
+  if (R.stats.cleanWaves > 0) grantMark('sweep');
+  if (R.bestCombo >= 10) grantMark('combo10');
+  if (R.bestCombo >= 25) grantMark('combo25');
+  if (R.bestCombo >= 60) grantMark('mael60');
+  if (R.m >= 2) grantMark('moon2');
+  if (R.m >= 3) grantMark('moon3');
+  if (R.pearls >= 100) grantMark('pearl100');
+  if (R.relics.length >= 7) grantMark('relic7');
+  if (R.stats.maxSurf >= 1e9) grantMark('break9');
+  if (R.stats.overflowBanks > 0) grantMark('tidalgod');
+  if (M.lifePearls + R.pearls >= 1000) grantMark('life1k');
+  if (Object.keys(M.codex).length >= RELICS.length) grantMark('codex24');
+}
+
+// ---------- run lifecycle ----------
+function startRun(phaseId) {
+  const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
+  R = newRun(phaseId, seed);
+  M.lastPhase = phaseId; M.runs++;
+  saveMeta(); snapshot();
+  overEl.hidden = true; draftEl.hidden = true;
+  document.body.classList.remove('frenzy', 'danger');
+  lastSurfTxt = ''; parts = [];
+  if (!M.seenHow) { hintEl.textContent = 'T A P   T H E   F L O T S A M'; hintEl.style.opacity = '1'; }
+  toast(PHASES.find(p => p.id === phaseId).name.toUpperCase() + ' — WAVE 1');
+  sfx('moon');
+}
+function commitRun(cause) {
+  if (!R) return;
+  M.drownings++;
+  M.lifePearls += R.pearls;
+  M.lifeFlotsam += R.stats.collected;
+  M.perfectBanks += R.stats.perfects;
+  M.bestCombo = Math.max(M.bestCombo, R.bestCombo);
+  M.maxSurfEver = Math.max(M.maxSurfEver, R.stats.maxSurf);
+  const ph = R.phaseId;
+  if (!(M.bestPearls[ph] >= R.pearls)) M.bestPearls[ph] = R.pearls;
+  if (!(M.bestWave[ph] >= R.K)) M.bestWave[ph] = R.K;
+  // cursed-crown mark: completed a moon holding 3+ cursed relics
+  if (R.m >= 2 && R.relics.filter(id => (RELICS.find(r => r.id === id) || {}).cursed).length >= 3) grantMark('cursed3');
+  if (M.drownings >= 12) grantMark('drown12');
+  checkLiveMarks();
+  M.last = { pearls: R.pearls, K: R.K, m: R.m, phase: ph, cause };
+  saveMeta();
+  try { localStorage.removeItem(RUN_KEY); } catch (e) {}
+}
+function snapshot() {
+  if (!R || R.over) return;
+  try { localStorage.setItem(RUN_KEY, JSON.stringify(R)); } catch (e) {}
+}
+function restoreRun() {
+  try {
+    const raw = localStorage.getItem(RUN_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d || d.v !== 1 || d.over) return false;
+    R = d;
+    return true;
+  } catch (e) { return false; }
+}
+
+// ---------- overlays: shore / drown ----------
+function phaseUnlocked(p) {
+  if (!p.unlock) return true;
+  if (p.id === 'still') return M.drownings >= 3;
+  if (p.id === 'blood') return Object.values(M.bestWave).some(K => K > TUNE.wavesPerMoon);
+  if (p.id === 'harvest') return M.lifeFlotsam >= 1000;
+  if (p.id === 'wolf') return M.bestCombo >= 25;
+  if (p.id === 'mirror') return M.perfectBanks >= 50;
+  if (p.id === 'black') return M.drownings >= 10;
+  return false;
+}
+let pickedPhase = 'full';
+function showShore(drowned) {
+  pickedPhase = phaseUnlocked(PHASES.find(p => p.id === M.lastPhase) || PHASES[0]) ? M.lastPhase : 'full';
+  let h = '';
+  if (drowned) {
+    const L = M.last;
+    h += '<h1 class="drowned">D R O W N E D</h1>' +
+      '<p>wave ' + L.K + ' · moon ' + ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][Math.min(6, L.m - 1)] +
+      ' · the sea keeps what the sea takes</p>' +
+      '<div class="pearlsum">+ ' + fmtP(L.pearls) + ' PEARLS BANKED</div>' +
+      '<p>' + (M.bestPearls[L.phase] <= L.pearls ? 'a new best for this moon ✦<br>' : '') +
+      'lifetime pearls ' + fmtP(M.lifePearls) + ' · drownings ' + M.drownings + '</p>';
+  } else {
+    h += '<h1>T I D E</h1>' +
+      '<p>the sea gives, the sea takes.<br><br>' +
+      'tap the flotsam the waves wash in — it compounds in the surf.<br>' +
+      'every ebb, the sea demands a rising toll from it. fail to pay: you drown.<br>' +
+      'in the slack between waves, tap to bank pearls — your only score.<br>' +
+      'banked pearls never help you survive. the sea always wins. how far can you ride it?</p>';
+  }
+  h += '<div class="chips">' + PHASES.map(p => {
+    const un = phaseUnlocked(p);
+    return '<button class="chip' + (p.id === pickedPhase ? ' on' : '') + '" data-ph="' + p.id + '" ' + (un ? '' : 'disabled') + '>' +
+      (un ? p.name : '🔒 ' + p.unlock) + '</button>';
+  }).join('') + '</div>' +
+    '<p id="phdesc" style="min-height:34px">' + esc((PHASES.find(p => p.id === pickedPhase) || PHASES[0]).desc) + '</p>' +
+    '<button id="setout">S E T   O U T</button>';
+  overEl.innerHTML = h;
+  overEl.hidden = false;
+  overEl.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => {
+    if (b.disabled) return;
+    pickedPhase = b.dataset.ph;
+    overEl.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.ph === pickedPhase));
+    document.getElementById('phdesc').textContent = (PHASES.find(p => p.id === pickedPhase) || PHASES[0]).desc;
+  }));
+  document.getElementById('setout').addEventListener('click', () => { ac(); startRun(pickedPhase); });
+}
+
+// ---------- draft overlay ----------
+function showDraft(offers) {
+  let h = '<h2>T H E   S E A   O F F E R S</h2><div class="cards">';
+  for (const id of offers) {
+    const r = RELICS.find(x => x.id === id);
+    const known = !!M.codex[id];
+    M.codex[id] = true; // offering it teaches it (for NEXT time)
+    h += '<button class="card' + (r.cursed ? ' cursed' : '') + '" data-id="' + id + '">' +
+      '<span class="g">' + r.g + '</span>' +
+      '<span class="n">' + esc(r.name) + '</span>' +
+      '<span class="d">' + (known ? esc(r.desc) : '— unknown · take it to learn it —') + '</span>' +
+      '</button>';
+  }
+  h += '</div><button id="drift">L E T   I T   D R I F T</button>';
+  draftEl.innerHTML = h;
+  draftEl.hidden = false;
+  saveMeta();
+  sfx('bell');
+  draftEl.querySelectorAll('.card').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.id;
+    chooseRelic(R, id);
+    const r = RELICS.find(x => x.id === id);
+    toast(r.g + ' ' + r.name.toUpperCase(), r.cursed ? 'hot' : undefined);
+    draftEl.hidden = true;
+    renderChips(); snapshot(); checkLiveMarks();
+  }));
+  document.getElementById('drift').addEventListener('click', () => {
+    chooseRelic(R, null);
+    draftEl.hidden = true;
+    snapshot();
+  });
+}
+
+function renderChips() {
+  if (!R) { chipsEl.innerHTML = ''; return; }
+  chipsEl.innerHTML = R.relics.map(id => {
+    const r = RELICS.find(x => x.id === id);
+    return '<div class="rchip' + (r.cursed ? ' cursed' : '') + '" title="' + esc(r.name) + '">' + r.g + '</div>';
+  }).join('');
+}
+
+// ---------- event application (core events → screen/sound/meta) ----------
+function fxXY(p) { return [p.x * innerWidth, p.y * innerHeight]; }
+function applyEvents(ev) {
+  for (const e of ev) {
+    if (e.t === 'flow') {
+      if (e.gain > 0.5) pop(innerWidth / 2, innerHeight * 0.26 + 50, '+' + fmt(e.gain), 'dim');
+      if (e.clamped) phasewordShow('THE SEA RESISTS', false);
+      swell(Math.max(1.2, phaseDur(R, compute(R), waveParams(R, compute(R)))), 0.055);
+    } else if (e.t === 'crash') {
+      phasewordShow('', false);
+    } else if (e.t === 'spawn') {
+      // visual pop-in handled by drawPieces alpha ramp
+    } else if (e.t === 'sink') {
+      if (e.p.kind !== 'j' && e.hadCombo > 2) { const [x, y] = fxXY(e.p); drainPop(x, y, 'lost'); }
+      if (e.bite > 0) { const [x, y] = fxXY(e.p); drainPop(x, y, '-' + fmt(e.bite)); }
+    } else if (e.t === 'slack') {
+      phasewordShow('S L A C K — B A N K', false);
+      if (!M.seenHow) { hintEl.textContent = 'T A P   T O   B A N K'; hintEl.style.opacity = '1'; }
+    } else if (e.t === 'ebb') {
+      phasewordShow('E B B', false);
+    } else if (e.t === 'toll') {
+      if (e.ok) {
+        drainPop(innerWidth / 2, innerHeight * 0.30, '-' + fmt(e.T));
+        sfx('thoom');
+        if (!reducedMotion) { field.classList.remove('shake'); void field.offsetWidth; field.classList.add('shake'); }
+      }
+    } else if (e.t === 'witch') {
+      toast('☥ THE WITCHBONE TAKES THE BLOW — THE SEA TAKES THE SURF', 'hot');
+      sfx('witch');
+    } else if (e.t === 'undertow') {
+      if (e.drain > 0.5) drainPop(innerWidth / 2 + 40, innerHeight * 0.32, '-' + fmt(e.drain));
+    } else if (e.t === 'drown') {
+      commitRun('drown');
+      sfx('drown');
+      document.body.classList.remove('frenzy', 'danger');
+      setTimeout(() => showShore(true), 900);
+    } else if (e.t === 'draft') {
+      showDraft(e.offers);
+    } else if (e.t === 'moonrise') {
+      const RN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+      toast('MOON ' + (RN[Math.min(6, e.m - 1)]) + ' RISES — THE SEA HUNGERS (TOLLS ×' + TUNE.hunger + ')', 'gold');
+      phasewordShow('M O O N R I S E', true);
+      sfx('moon');
+      grantMark(e.m >= 2 ? 'moon2' : ''); if (e.m >= 3) grantMark('moon3');
+      snapshot();
+    } else if (e.t === 'wave') {
+      snapshot();
+    } else if (e.t === 'crumble') {
+      toast('☠ OLD DEBT CRUMBLES');
+      renderChips();
+    } else if (e.t === 'mark') {
+      grantMark(e.id);
+    }
+  }
+}
+let phasewordTimer = 0;
+function phasewordShow(txt, gold) {
+  if (!txt) { phaseword.classList.remove('on'); return; }
+  phaseword.textContent = txt;
+  phaseword.classList.toggle('gold', !!gold);
+  phaseword.classList.add('on');
+  phasewordTimer = 2.2;
+}
+
+// ---------- panels ----------
+let openTab = null;
+function openPanel(tab) {
+  openTab = tab;
+  panel.classList.add('open');
+  document.querySelectorAll('.dockbtn').forEach(b => b.classList.toggle('open', b.dataset.tab === tab));
+  renderPanel();
+}
+function closePanel() {
+  openTab = null;
+  panel.classList.remove('open');
+  document.querySelectorAll('.dockbtn').forEach(b => b.classList.remove('open'));
+}
+document.getElementById('pclose').addEventListener('click', closePanel);
+document.querySelectorAll('.dockbtn').forEach(b =>
+  b.addEventListener('click', e => {
+    e.stopPropagation();
+    openTab === b.dataset.tab ? closePanel() : openPanel(b.dataset.tab);
+  }));
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+function renderPanel() {
+  if (!openTab) return;
+  if (openTab === 'rec') {
+    ptitle.textContent = 'R E C O R D S';
+    let h = '';
+    if (R && !R.over) {
+      h += '<h4>THIS RUN</h4>' +
+        '<div class="stat"><span>pearls</span><b>' + fmtP(R.pearls) + ' ✦</b></div>' +
+        '<div class="stat"><span>wave</span><b>' + R.K + ' (moon ' + R.m + ')</b></div>' +
+        '<div class="stat"><span>best combo</span><b>' + R.bestCombo + '</b></div>' +
+        '<div class="stat"><span>collected / sunk</span><b>' + R.stats.collected + ' / ' + R.stats.sunk + '</b></div>' +
+        '<div class="stat"><span>perfect banks</span><b>' + R.stats.perfects + '</b></div>';
+    }
+    h += '<h4>BESTS</h4>';
+    for (const p of PHASES) {
+      if (!(p.id in M.bestPearls)) continue;
+      h += '<div class="stat"><span>' + esc(p.name) + '</span><b>' + fmtP(M.bestPearls[p.id]) + ' ✦ · wave ' + (M.bestWave[p.id] || 0) + '</b></div>';
+    }
+    h += '<h4>LIFETIME</h4>' +
+      '<div class="stat"><span>pearls</span><b>' + fmtP(M.lifePearls) + ' ✦</b></div>' +
+      '<div class="stat"><span>flotsam collected</span><b>' + fmt(M.lifeFlotsam) + '</b></div>' +
+      '<div class="stat"><span>perfect banks</span><b>' + M.perfectBanks + '</b></div>' +
+      '<div class="stat"><span>best combo</span><b>' + M.bestCombo + '</b></div>' +
+      '<div class="stat"><span>biggest surf</span><b>' + fmt(M.maxSurfEver) + '</b></div>' +
+      '<div class="stat"><span>drownings</span><b>' + M.drownings + '</b></div>' +
+      '<h4>MARKS · ' + Object.keys(M.marks).length + '/' + MARKS.length + '</h4><div class="achgrid">' +
+      MARKS.map(mk => '<span class="ach' + (M.marks[mk.id] ? ' got' : '') + '">' + esc(mk.name) + '</span>').join('') + '</div>';
+    pbody.innerHTML = h;
+  } else if (openTab === 'codex') {
+    ptitle.textContent = 'C O D E X';
+    pbody.innerHTML = '<p class="note">Relics wash ashore at waves 3, 6, 9 and 12. A relic must be offered once before the sea reveals what it does.</p>' +
+      RELICS.map(r => {
+        const known = !!M.codex[r.id];
+        const held = R && !R.over && has(R, r.id);
+        return '<div class="row ' + (known ? 'codexed' : 'unknown') + (r.cursed ? ' cursedr' : '') + '">' +
+          '<div class="l"><div class="name">' + r.g + '  ' + (known ? esc(r.name) : '— ? —') + (held ? ' · held' : '') + '</div>' +
+          '<div class="sub">' + (known ? esc(r.desc) : 'not yet encountered') + '</div></div></div>';
+      }).join('');
+  } else if (openTab === 'moon') {
+    ptitle.textContent = 'M O O N S';
+    pbody.innerHTML = '<p class="note">Moons reshape the run — pick one when you set out. Harder moons shine brighter (pearl multipliers).</p>' +
+      PHASES.map(p => {
+        const un = phaseUnlocked(p);
+        return '<div class="row' + (un ? ' codexed' : ' unknown') + '"><div class="l">' +
+          '<div class="name">☾ ' + esc(p.name) + ' · ×' + p.pm.toFixed(2) + '</div>' +
+          '<div class="sub">' + (un ? esc(p.desc) : 'locked — ' + esc(p.unlock)) + '</div></div></div>';
+      }).join('');
+  } else if (openTab === 'log') {
+    ptitle.textContent = 'T I D E';
+    pbody.innerHTML =
+      '<p class="note">The surf value is your life. Waves wash flotsam in — tap it before it sinks; missing one breaks your combo. ' +
+      'The surf compounds every wave, but each ebb the sea takes a rising toll. When you cannot pay, you drown.</p>' +
+      '<p class="note">In the SLACK between waves, tap to bank 30% of the surf as pearls — banked at the marked instant, the sea takes no tax. ' +
+      'Pearls are your score and nothing more: they will not save you. The sea always wins.</p>' +
+      '<p class="note">Nothing carries between runs except what you have learned: marks, the codex, the moons.</p>' +
+      (M.last ? '<h4>LAST TIDE</h4><div class="stat"><span>' + esc((PHASES.find(p => p.id === M.last.phase) || {}).name || '') + '</span><b>' +
+        fmtP(M.last.pearls) + ' ✦ · wave ' + M.last.K + '</b></div>' : '') +
+      '<h4>SETTINGS</h4>' +
+      '<button class="bigbtn" data-act="sound">SOUND ' + (M.sound ? 'ON' : 'OFF') + '</button>' +
+      (R && !R.over ? '<button class="bigbtn danger" data-act="abandon">ABANDON RUN (counts as a drowning)</button>' : '') +
+      '<button class="bigbtn danger" data-act="wipe">FORGET EVERYTHING</button>';
+  }
+}
+pbody.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'sound') { M.sound = !M.sound; saveMeta(); renderPanel(); if (M.sound) sfx('bank'); }
+  else if (act === 'abandon') {
+    if (R && !R.over) { R.over = { cause: 'abandon' }; commitRun('abandon'); closePanel(); showShore(true); }
+  } else if (act === 'wipe') {
+    if (confirm('Forget every mark, record and codex entry?')) {
+      try { localStorage.removeItem(META_KEY); localStorage.removeItem(RUN_KEY); } catch (err) {}
+      location.reload();
+    }
+  }
+});
+// the panel re-renders; hold off while a pointer interacts with it (the NUMEN lesson)
+let panelHold = false, panelHoldUntil = 0;
+panel.addEventListener('pointerdown', () => { panelHold = true; });
+panel.addEventListener('pointerup', () => { panelHold = false; panelHoldUntil = performance.now() + 350; });
+panel.addEventListener('pointercancel', () => { panelHold = false; panelHoldUntil = performance.now() + 350; });
+
+// ---------- dock visibility ----------
+function renderDock() {
+  const show = (id, cond) => {
+    const el = document.getElementById(id);
+    if (cond && !el.classList.contains('show')) el.classList.add('show');
+  };
+  show('d-codex', Object.keys(M.codex).length > 0);
+  show('d-moon', M.drownings >= 1);
+}
+
+// ---------- main render ----------
+let lastSurfTxt = '';
+function bump() { surfEl.classList.remove('bump'); void surfEl.offsetWidth; surfEl.classList.add('bump'); }
+function render() {
+  if (!R) return;
+  const txt = fmt(Math.max(0, R.surf));
+  if (txt !== lastSurfTxt) { surfEl.textContent = txt; lastSurfTxt = txt; }
+  const C = compute(R), W = waveParams(R, C);
+  const RN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+  moontag.innerHTML = (PHASES.find(p => p.id === R.phaseId) || {}).name === 'Full Moon' ? ('MOON <b>' + RN[Math.min(6, R.m - 1)] + '</b> · WAVE ' + R.k + '/' + TUNE.wavesPerMoon)
+    : (esc((PHASES.find(p => p.id === R.phaseId) || {}).name || '').toUpperCase() + ' <b>' + RN[Math.min(6, R.m - 1)] + '</b> · WAVE ' + R.k + '/' + TUNE.wavesPerMoon);
+  tollEl.textContent = R.over ? '' : (C.hideToll ? 'THE EBB DEMANDS — ? ?' : 'THE EBB DEMANDS ' + fmt(W.T));
+  const danger = !R.over && R.surf < 1.25 * W.T;
+  tollEl.classList.toggle('red', danger);
+  document.body.classList.toggle('danger', danger);
+  document.body.classList.toggle('frenzy', !R.over && R.combo >= TUNE.frenzyAt);
+  pearlEl.textContent = R.pearls > 0 ? fmtP(R.pearls) + ' ✦' : '';
+  comboEl.textContent = '×' + comboMult(R, C).toFixed(2) + (R.combo >= TUNE.frenzyAt ? ' SURGE' : '');
+  comboEl.style.opacity = R.combo > 0 ? Math.min(1, 0.3 + R.combo / 12) : 0;
+}
+
+// ---------- input ----------
+let lastTapAt = 0;
+function fieldTap(x, y, evtTs) {
+  if (!R || R.over || R.draft) return;
+  ac();
+  const agoSec = evtTs ? Math.max(0, (performance.now() - evtTs) / 1000) : 0;
+  if (R.ph === 'collect') {
+    const r = tapAt(R, x / innerWidth, y / innerHeight, 38 / innerWidth);
+    if (r) {
+      if (r.t === 'jelly') {
+        drainPop(x, y, '-' + fmt(r.cost));
+        sfx('jelly');
+        toast('✺ JELLYFISH — IT STINGS', 'hot');
+      } else {
+        pop(x, y, '+' + fmt(r.gain), r.p.kind === 'd' ? 'gold' : '');
+        if (r.conch > 0.5) pop(x, y + 22, '+' + fmt(r.conch), 'dim');
+        sfx(r.p.kind === 'd' ? 'drift' : 'plink', R.combo);
+        bump();
+        if (r.frenzy) { phasewordShow('S P R I N G   S U R G E', true); burst(innerWidth / 2, innerHeight * 0.26, 10, '✶', 'gold'); }
+        if (R.combo >= TUNE.frenzyAt) { pop(x + 18, y - 14, '+' + fmt(r.gain * 0.0), 'gold'); pop(x - 22, y + 8, '✶', 'gold'); }
+        if (M.seenHow === false && R.stats.collected >= 3) hintEl.style.opacity = '0';
+      }
+      checkLiveMarks();
+    } else sfx('splash');
+  } else if (R.ph === 'slack') {
+    const r = bankTap(R, agoSec);
+    if (r) {
+      pop(innerWidth / 2, innerHeight * 0.26, '+' + fmtP(r.dP) + ' ✦', 'gold');
+      drainPop(x, y, '-' + fmt(r.B));
+      sfx(r.perfect ? 'perfect' : 'bank');
+      if (r.perfect) phasewordShow('P E R F E C T', true);
+      if (r.overflow) { burst(innerWidth / 2, innerHeight * 0.26, 16, '✦', 'gold'); toast('THE SEA CANNOT HOLD YOU — TIDAL GOD', 'gold'); }
+      if (!M.seenHow) { M.seenHow = true; hintEl.style.opacity = '0'; saveMeta(); }
+      checkLiveMarks();
+    }
+  } else sfx('splash');
+}
+function handleTap(x, y, evtTs) {
+  const now = performance.now();
+  if (now - lastTapAt < 30) return; // dedupe pointerdown + touchstart on one gesture
+  lastTapAt = now;
+  fieldTap(x, y, evtTs);
+}
+field.addEventListener('pointerdown', e => {
+  if (e.target.closest('#dock') || e.target.closest('#panel')) return;
+  handleTap(e.clientX, e.clientY, e.timeStamp);
+});
+field.addEventListener('touchstart', e => {
+  if (e.target.closest('#dock') || e.target.closest('#panel')) return;
+  const t = e.changedTouches[0];
+  handleTap(t.clientX, t.clientY, e.timeStamp);
+}, { passive: true });
+field.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePanel();
+  if (!R || R.over) return;
+  if (R.draft && !draftEl.hidden) {
+    const i = parseInt(e.key, 10) - 1;
+    const cards = draftEl.querySelectorAll('.card');
+    if (i >= 0 && i < cards.length) cards[i].click();
+    return;
+  }
+  if (e.key === ' ') { e.preventDefault(); fieldTap(innerWidth / 2, innerHeight * 0.6, performance.now()); }
+});
+
+// ---------- boot & loop ----------
+loadMeta();
+const resumed = restoreRun();
+renderDock();
+if (resumed) toast('THE TIDE WAITED');
+else showShore(false);
+
+let lastFrame = performance.now(), acc = 0, panelTimer = 0, beatTimer = 0, hidden = false, resumeGrace = 0;
+const STEP = 0.05;
+function frame(now) {
+  let dt = (now - lastFrame) / 1000;
+  lastFrame = now;
+  dt = Math.min(dt, 0.25); // long stall = pause, not catch-up: the tide waits
+  if (resumeGrace > 0) { resumeGrace -= dt; dt = 0; }
+  ctx.clearRect(0, 0, innerWidth, innerHeight);
+  if (R && !R.over) {
+    if (!R.draft && !openTab) {
+      acc += dt;
+      let n = 0;
+      while (acc >= STEP && n < 40) { applyEvents(advance(R, STEP)); acc -= STEP; n++; }
+    }
+    drawWater(dt);
+    drawPieces(dt);
+    render();
+    // heartbeat when the toll looms
+    const C = compute(R), W = waveParams(R, C);
+    if (!R.draft && R.surf < 1.25 * W.T && R.ph !== 'moonrise') {
+      beatTimer -= dt;
+      if (beatTimer <= 0) {
+        sfx('beat');
+        const ratio = Math.max(0, Math.min(1, R.surf / (1.25 * W.T)));
+        beatTimer = 0.45 + 0.75 * ratio;
+      }
+    } else beatTimer = 0.3;
+  } else drawWater(dt);
+  drawParts(dt);
+  if (phasewordTimer > 0) { phasewordTimer -= dt; if (phasewordTimer <= 0) phaseword.classList.remove('on'); }
+  panelTimer += dt;
+  if (panelTimer > 0.3) {
+    panelTimer = 0;
+    if (openTab && !panelHold && now > panelHoldUntil) renderPanel();
+    renderDock();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+setInterval(() => { saveMeta(); snapshot(); }, 5000);
+addEventListener('pagehide', () => { saveMeta(); snapshot(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hidden = true; saveMeta(); snapshot(); }
+  else { hidden = false; lastFrame = performance.now(); acc = 0; resumeGrace = 0.8; }
+});
+</script>
+</body>
+</html>
