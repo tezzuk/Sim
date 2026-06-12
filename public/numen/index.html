@@ -186,6 +186,8 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; padding: 30px;
   }
+  /* author display:flex overrides the hidden attribute's UA display:none */
+  #win[hidden] { display: none !important; }
   #win h1 { font-size: clamp(22px, 5vw, 42px); letter-spacing: .2em; color: var(--gold); font-weight: 600; }
   #win p { color: var(--dim); margin: 18px 0; font-size: 13px; line-height: 1.8; }
 </style>
@@ -672,7 +674,9 @@ function ac() {
   return AC;
 }
 function tone(freq, dur, type, gainV, when) {
-  const a = ac(), o = a.createOscillator(), g = a.createGain();
+  const a = ac();
+  if (!a) return; // audio blocked (Brave shields etc.) — play silently
+  const o = a.createOscillator(), g = a.createGain();
   const t = a.currentTime + (when || 0);
   o.type = type || 'sine'; o.frequency.value = freq;
   g.gain.setValueAtTime(gainV, t);
