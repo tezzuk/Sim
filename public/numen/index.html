@@ -665,8 +665,10 @@ function drawParts(dt) {
 // ---------- ui: sound (tiny webaudio synth, no assets) ----------
 let AC = null;
 function ac() {
-  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
-  if (AC.state === 'suspended') AC.resume();
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+  } catch(e) {}
   return AC;
 }
 function tone(freq, dur, type, gainV, when) {
@@ -945,7 +947,7 @@ function handleTap(x, y) {
   const now = performance.now();
   if (now - lastTapAt < 30) return; // dedupe pointerdown + touchstart on same gesture
   lastTapAt = now;
-  ac();
+  try { ac(); } catch(e) {}
   doClick(x, y);
 }
 field.addEventListener('pointerdown', e => {
