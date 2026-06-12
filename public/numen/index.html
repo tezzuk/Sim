@@ -940,11 +940,23 @@ function render() {
 }
 
 // ---------- input ----------
+let lastTapAt = 0;
+function handleTap(x, y) {
+  const now = performance.now();
+  if (now - lastTapAt < 30) return; // dedupe pointerdown + touchstart on same gesture
+  lastTapAt = now;
+  ac();
+  doClick(x, y);
+}
 field.addEventListener('pointerdown', e => {
   if (e.target.closest('#dock') || e.target.closest('#panel')) return;
-  ac(); // wake audio on user gesture
-  doClick(e.clientX, e.clientY);
+  handleTap(e.clientX, e.clientY);
 });
+field.addEventListener('touchstart', e => {
+  if (e.target.closest('#dock') || e.target.closest('#panel')) return;
+  const t = e.changedTouches[0];
+  handleTap(t.clientX, t.clientY);
+}, { passive: true });
 field.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('keydown', e => {
   if (e.key === 'Escape') closePanel();
