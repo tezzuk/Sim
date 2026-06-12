@@ -6,9 +6,9 @@ modern browser (Safari on iPhone/iPad, anything on Windows).
 > This repo also ships two single-file games alongside Lineage:
 > **[NUMEN](NUMEN.md)**, a minimal-surface incremental, at
 > **https://tezzuk.github.io/Sim/numen/**, and
-> **[TIDE](TIDE.md)**, a hardcore-roguelike incremental where the number is your life,
-> at **https://tezzuk.github.io/Sim/tide/**. Both are dependency-free HTML files in
-> `public/`, deployed with the same workflow.
+> **[PHOSPHOR](PHOSPHOR.md)**, an oscilloscope roguelike — ride three knobs to keep your
+> trace locked on a drifting reference — at **https://tezzuk.github.io/Sim/phosphor/**.
+> Both are dependency-free HTML files in `public/`, deployed with the same workflow.
 
 You are not the god-hand: **you are one colonist** in a domed science outpost on an
 exoplanet. Around you, every colonist is simulated — born, schooled, employed, partnered,
