@@ -2,79 +2,73 @@
 
 An oscilloscope roguelike, sibling to [NUMEN](NUMEN.md): one dependency-free HTML file
 (`public/phosphor/index.html`), live at **https://tezzuk.github.io/Sim/phosphor/**, phone and
-desktop. You are the engineer on the night shift; every subsystem sings a reference wave, and
-your job is to make the bright phosphor trace **match the dashed reference and hold it** while
-the plant drifts, glitches, and accelerates around you.
+desktop. Green phosphor CRT, a dashed reference wave, your bright trace — and a plant that
+keeps punching the reference out of alignment.
 
-## The loop
+## The loop (snap-fix design)
 
-- **Three knobs, no tapping.** Fat drag-lanes for **VOLTS/DIV · FREQUENCY · PHASE** (multi-touch:
-  ride two at once), or keyboard (1/2/3 + arrows, shift for fine). The skill is continuous
-  control — tracking, not twitch.
-- **Lock = life.** When every error is inside the lock window the trigger reads `TRIG'D`:
-  locked time banks **joules** (the score) and recharges **integrity** (the thin top bar).
-  Unlocked time bleeds it. Integrity at zero = **SIGNAL LOST**. Permadeath, instant restart.
-- **The reference fights back, on the beat.** Drift LFOs and random-walk steps land on a beat
-  grid (78 BPM rising to 150), and **transients** — instant parameter jumps — are telegraphed
-  exactly one beat ahead (`⚠ TRANSIENT — PHASE`). The game is rhythmic tracking: settle, ride,
-  brace, recover.
-- **Combo:** every beat held fully locked stacks the joule multiplier (up to ×3); one sloppy
-  beat breaks it. Numbers pop off the trace on every locked beat.
-- **Roguelike spine:** survive a signal (8 bars) → the **spares crate** offers 1-of-3
-  components — PLL (phase snaps near lock), Crystal Oven (reference drifts less), Wideband
-  Trigger (lock window +40%), Surge Protector (survive one blackout)… and cursed parts:
-  Overclock (joules ×2, drift ×1.5), Burn-In, Hot Gain Stage, Cracked CRT. Each cleared signal
-  raises BPM, drift, glitch rate, and drain.
-- **Stage 1 teaches one axis** (amplitude only; the other knobs track automatically), stage 2
-  adds frequency, stage 3 adds phase and transients. By SIG 05 the plant is genuinely hostile.
-- **Tune by ear.** Your wave and the reference are real audio oscillators (110–330 Hz): when
-  you're detuned you hear the classic beat-frequency wobble; when the hum settles, you're
-  locked — and the reference fades into consonance. Fully playable silent, too (audio failures
-  never block anything).
+- **Faults hit ONE parameter at a time** — amplitude, frequency or phase — telegraphed exactly
+  one beat ahead (`⚠ PHASE`), landing on the beat grid (80 → 150 BPM).
+- **The whole screen is the knob.** When a fault is open, drag anywhere (or arrow keys); the
+  game routes your gesture to the broken parameter — big arrows show the way. Get close and
+  the wave **SNAPS** into lock: shake, burst, chime. No multitasking, no fiddly sliders —
+  reaction and one clean flick.
+- **Fix speed is the score.** Rated against the beat: **INSTANT ×4 · QUICK ×2 · CLEAN ×1 ·
+  SLOW ×0.4** (slow breaks your streak). Instant/quick fixes stack a streak multiplier up to
+  ×4 on top, with milestone callouts every 5. Joules pop off the trace on every fix and
+  trickle in on every clean bar.
+- **Integrity is the clock**: open faults drain it (stacking if you let them queue), clean
+  signal recharges it. Zero = **SIGNAL LOST**, permadeath, instant restart.
+- **Roguelike spine**: clear a signal (8 bars, clean board required) → the spares crate offers
+  1-of-3 components — Wideband Trigger (snap zone +40%), Servo Assist, Trigger Hold (time
+  crawls after a fault), Surge Protector (survive one blackout)… and cursed parts: Overclock
+  (joules ×2, faults 50% bigger), Burn-In, Hot Gain Stage, Cracked CRT. Every signal raises
+  BPM, fault size, fault rate, and drain.
+- Stage 1 throws only amplitude faults; frequency arrives at SIG 02, phase at SIG 03.
+- **Tune by ear**: the traces are live oscillators — an open frequency fault audibly *beats*
+  (wow-wow-wow) until you pull it back into consonance. Fully playable silent too.
 
-## Accessibility was a design pillar
+## Accessibility
 
-No precision taps, no reaction-time tests without telegraphs. Continuous drag control with
-fat lanes; `‹ ›` chevrons on every knob point the correction direction with brightness ∝
-error; full keyboard play; audio tuning for eyes-free correction (and visual everything for
-ears-free); `prefers-reduced-motion` kills shake/flash; the only timed event (transients) is
-announced a full beat early.
+No precision taps anywhere. Whole-screen drag with direction arrows (brightness/labels, not
+color alone), full keyboard play (arrows fix, shift = fine, 1/2/3 drafts), every fault
+telegraphed a beat early, `prefers-reduced-motion` removes shake/flash, and the audio layer
+is redundant with visuals in both directions.
 
-## Why death is guaranteed
+## Why blackout is guaranteed
 
-A controller with any positive reaction time or finite knob speed must spend time unlocked
-after every walk step and transient — and walk steps, glitch sizes, and the integrity drain
-all grow without bound (drain goes exponential past SIG 05), while charge and the lock window
-are constant. Components only scale clamped constants. The pacing harness probes the bound
-with a beyond-human "cyborg" controller (30 ms reaction, 0.2% observation noise, 6.0/s slew):
-it dies at SIG 18, every seed.
+Any player has a reaction floor and a finite drag speed, so every fault buys the plant some
+open time — and fault size, fault rate, and the integrity drain all grow without bound
+(drain goes exponential past SIG 05) while charge and the snap zone are fixed. Components
+only scale clamped constants. The harness probes the bound with a beyond-human "cyborg"
+controller (30 ms reaction, 8.0/s slew): it dies at SIG 17, every seed.
 
 ## Balance methodology
 
-Same discipline as NUMEN: the game core is pure and DOM-free (seeded mulberry32, no clocks),
-so two headless Node harnesses drive the *shipped file* through a stubbed DOM:
+The game core is pure and DOM-free (seeded mulberry32, no clocks), so two headless Node
+harnesses drive the *shipped file* through a stubbed DOM:
 
-- **30 functional checks** — error math incl. phase wrap, lock thresholds, charge/drain/
-  blackout, fuse single-use, combo bookkeeping, glitch telegraph timing, draft flow, every
-  component effect, determinism, snapshot round-trip (reloading never escapes a bad shift —
-  seeded replay), difficulty monotonicity, NaN sweeps.
-- **Pacing sim** — bounded-bandwidth PD-controller bots (reaction time τ, observation noise σ,
-  slew rate S) across 6 tiers × 60 seeded runs:
+- **30 functional checks** — fault scheduling/grid/gaps, telegraph timing, snap routing and
+  exactness, all four speed tiers and combo rules, reward arithmetic, drain stacking,
+  fuse single-use, clean-board stage clears, every component effect, rail bounces,
+  determinism, snapshot round-trips (reloads replay identically — no scumming), NaN sweeps.
+- **Pacing sim** — reaction-and-slew bots (reaction τ, aim noise σ, drag speed S) across
+  6 tiers × 60 seeded runs:
 
 | controller | τ / σ / slew | death SIG p10/med/p90 | joules med |
 |---|---|---|---|
-| shaky | .55s / 8.5% / 0.5 | 5/6/7 | 3.5K |
-| decent | .30s / 4% / 0.9 | 8/9/11 | 12K |
-| skilled | .16s / 2% / 1.6 | 11/13/16 | 85K |
-| expert | .08s / 0.8% / 2.6 | 14/17/17 | 600K |
-| cyborg (beyond human) | .03s / 0.2% / 6.0 | 18/18/18 | 2.2M |
-| skilled, never drafts | — | 9/9/9 | 14K |
+| shaky | .50s / 5% / 0.6 | 7/7/8 | 72K |
+| decent | .28s / 3% / 1.2 | 9/10/11 | 456K |
+| skilled | .15s / 1.5% / 2.2 | 12/13/13 | 1.5M |
+| expert | .08s / 0.8% / 3.5 | 14/15/15 | 4.5M |
+| cyborg (beyond human) | .03s / 0.2% / 8.0 | 17/17/17 | 20M |
+| skilled, never drafts | — | 8/9/9 | 273K |
 
-Joules span ×600 from shaky to expert — a real score ceiling to chase. A decent shift lasts
-~4–5 minutes. Drafting matters (skilled with drafts: SIG 13 / 85K vs without: SIG 9 / 14K).
+A ×60 joule ceiling from shaky to expert, drafting visibly matters (skilled with drafts:
+SIG 13 / 1.5M vs without: SIG 9 / 273K), and a decent shift runs ~3–5 minutes.
 
-Meta is knowledge only: 14 marks, the component schematic (a part must be offered once before
-its label is legible), records. No power carries between shifts.
+Meta is knowledge only: 15 marks, the component schematic (a part must be offered once
+before its label is legible), records. No power carries between shifts.
 
 ## Development
 

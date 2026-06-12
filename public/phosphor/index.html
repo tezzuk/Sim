@@ -14,6 +14,7 @@
     --phos: #33ff99;
     --ref: #ffb347;
     --hot: #ff5c5c;
+    --gold: #ffd75e;
     --panel: #04120b;
     --line: #0d2a1c;
   }
@@ -26,75 +27,81 @@
   }
 
   #rig { position: fixed; inset: 0; display: flex; flex-direction: column; }
-  #scopewrap { position: relative; flex: 1; min-height: 0; }
+  #scopewrap { position: relative; flex: 1; min-height: 0; cursor: grab; }
   #scope { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #scopewrap.jolt { animation: jolt .12s linear; }
-  @keyframes jolt {
-    25% { transform: translate(3px, -2px); }
-    50% { transform: translate(-3px, 2px); }
-    75% { transform: translate(2px, 2px); }
-  }
+  #scopewrap.shake1 { animation: sh1 .1s linear; }
+  #scopewrap.shake2 { animation: sh2 .14s linear; }
+  #scopewrap.shake3 { animation: sh3 .22s linear; }
+  @keyframes sh1 { 25%{transform:translate(2px,-1px)} 50%{transform:translate(-2px,1px)} 75%{transform:translate(1px,1px)} }
+  @keyframes sh2 { 20%{transform:translate(4px,-3px)} 40%{transform:translate(-4px,3px)} 60%{transform:translate(3px,2px)} 80%{transform:translate(-2px,-2px)} }
+  @keyframes sh3 { 15%{transform:translate(7px,-5px) rotate(.3deg)} 30%{transform:translate(-7px,5px)} 45%{transform:translate(6px,3px) rotate(-.3deg)} 60%{transform:translate(-5px,-4px)} 75%{transform:translate(3px,3px)} 90%{transform:translate(-2px,1px)} }
 
-  /* DSO chrome (HTML overlay, pointer-events none) */
   .chrome { position: absolute; font-size: 11px; letter-spacing: .18em; color: var(--dim); pointer-events: none; }
   #c-tl { top: max(10px, env(safe-area-inset-top)); left: 14px; }
   #c-tr { top: max(10px, env(safe-area-inset-top)); right: 14px; text-align: right; }
-  #c-bl { bottom: 8px; left: 14px; }
-  #c-br { bottom: 8px; right: 14px; text-align: right; }
   #c-tl b, #c-tr b { color: var(--phos); font-weight: 500; }
   #trig.lost { color: var(--hot); animation: blink 1s steps(2) infinite; }
   #trig.lock { color: var(--phos); }
   @keyframes blink { 50% { opacity: .2; } }
 
   #joules {
-    position: absolute; left: 50%; top: max(10px, env(safe-area-inset-top)); transform: translateX(-50%);
-    text-align: center; pointer-events: none;
+    position: absolute; left: 50%; top: max(34px, calc(env(safe-area-inset-top) + 24px)); transform: translateX(-50%);
+    text-align: center; pointer-events: none; z-index: 4;
   }
-  #jnum { font-size: clamp(20px, 4.5vw, 30px); font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 18px rgba(51, 255, 153, .25); }
-  #jnum.bump { animation: bump .12s ease-out; }
-  @keyframes bump { 0% { transform: scale(1.06); } 100% { transform: scale(1); } }
-  #jsub { font-size: 10px; letter-spacing: .3em; color: var(--dim); margin-top: 2px; }
-  #combo { font-size: 11px; letter-spacing: .2em; color: var(--phos); opacity: 0; transition: opacity .2s; margin-top: 3px; }
+  #jnum { font-size: clamp(26px, 6vw, 42px); font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 22px rgba(51, 255, 153, .3); }
+  #jnum.bump { animation: bump .14s ease-out; }
+  @keyframes bump { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  #jsub { font-size: 9.5px; letter-spacing: .35em; color: var(--dim); margin-top: 1px; }
+  #combo { font-size: 12px; letter-spacing: .2em; color: var(--gold); opacity: 0; transition: opacity .2s; margin-top: 4px;
+    text-shadow: 0 0 12px rgba(255, 215, 94, .5); }
 
-  #integ { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #07140d; z-index: 5; }
-  #integfill { height: 100%; width: 100%; background: var(--phos); transition: width .15s linear; box-shadow: 0 0 10px rgba(51,255,153,.6); }
+  #integ { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #07140d; z-index: 5; }
+  #integfill { height: 100%; width: 100%; background: var(--phos); transition: width .12s linear; box-shadow: 0 0 10px rgba(51,255,153,.6); }
   #integ.low #integfill { background: var(--hot); box-shadow: 0 0 10px rgba(255,92,92,.7); animation: blink 0.6s steps(2) infinite; }
 
-  #stageword {
-    position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%);
-    font-size: clamp(14px, 3.4vw, 22px); letter-spacing: .5em; color: var(--phos); opacity: 0;
-    pointer-events: none; transition: opacity .4s; text-align: center; text-shadow: 0 0 24px rgba(51,255,153,.5);
+  /* big center callouts */
+  #callout {
+    position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%) scale(1);
+    font-size: clamp(18px, 5vw, 34px); letter-spacing: .35em; color: var(--gold); opacity: 0;
+    pointer-events: none; text-align: center; font-weight: 700;
+    text-shadow: 0 0 30px rgba(255, 215, 94, .6);
   }
-  #stageword.on { opacity: .95; }
-  #stageword.hot { color: var(--hot); text-shadow: 0 0 24px rgba(255,92,92,.5); }
-  #stageword small { display: block; font-size: 10px; letter-spacing: .4em; color: var(--dim); margin-top: 10px; }
+  #callout.go { animation: callout .7s ease-out; }
+  @keyframes callout { 0% { opacity: 0; transform: translate(-50%,-50%) scale(1.7); } 18% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+  #callout.hot { color: var(--hot); text-shadow: 0 0 30px rgba(255,92,92,.6); }
+  #callout.phos { color: var(--phos); text-shadow: 0 0 30px rgba(51,255,153,.6); }
 
-  /* knob lanes */
-  #knobs {
+  /* fault direction arrow */
+  #arrow {
+    position: absolute; left: 50%; bottom: 22%; transform: translateX(-50%);
+    font-size: clamp(26px, 7vw, 48px); color: var(--hot); opacity: 0; pointer-events: none;
+    text-shadow: 0 0 26px rgba(255, 92, 92, .7); letter-spacing: .1em;
+    transition: opacity .15s; animation: pulse_ .5s ease-in-out infinite alternate;
+  }
+  @keyframes pulse_ { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.12); } }
+  #arrowlbl {
+    position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%);
+    font-size: 11px; letter-spacing: .45em; color: var(--hot); opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+
+  /* bottom meter strip (read-only) */
+  #meters {
     display: flex; gap: 8px; padding: 8px 10px calc(env(safe-area-inset-bottom) + 10px);
     background: linear-gradient(180deg, rgba(2,5,3,0) 0%, rgba(4,18,11,.85) 30%);
   }
-  .lane {
-    flex: 1; height: 66px; border: 1px solid var(--line); border-radius: 12px; position: relative;
-    background: rgba(4, 18, 11, .65); overflow: hidden; touch-action: none; cursor: ew-resize;
+  .meter {
+    flex: 1; height: 44px; border: 1px solid var(--line); border-radius: 11px; position: relative;
+    background: rgba(4, 18, 11, .65); overflow: hidden; pointer-events: none;
   }
-  .lane.off { opacity: .28; cursor: default; }
-  .lane .lbl {
-    position: absolute; top: 7px; left: 0; right: 0; text-align: center;
-    font-size: 9.5px; letter-spacing: .3em; color: var(--dim); pointer-events: none;
-  }
-  .lane.active { border-color: var(--phos); }
-  .lane .groove { position: absolute; left: 12px; right: 12px; top: 38px; height: 2px; background: var(--line); pointer-events: none; }
-  .lane .tick {
-    position: absolute; top: 27px; width: 3px; height: 24px; background: var(--phos); border-radius: 2px;
-    box-shadow: 0 0 8px rgba(51,255,153,.8); pointer-events: none; transform: translateX(-50%);
-  }
-  .lane .ref { position: absolute; top: 31px; width: 2px; height: 16px; background: var(--ref); opacity: .8; border-radius: 2px; pointer-events: none; transform: translateX(-50%); display: none; }
-  .lane.eye .ref { display: block; }
-  .lane .chev { position: absolute; top: 30px; font-size: 14px; color: var(--phos); opacity: 0; pointer-events: none; transition: opacity .12s; }
-  .lane .chev.l { left: 7px; } .lane .chev.r { right: 7px; }
-  .lane .val { position: absolute; bottom: 5px; left: 0; right: 0; text-align: center; font-size: 9px; color: var(--dim); letter-spacing: .15em; pointer-events: none; }
+  .meter .lbl { position: absolute; top: 5px; left: 0; right: 0; text-align: center; font-size: 9px; letter-spacing: .28em; color: var(--dim); }
+  .meter .groove { position: absolute; left: 10px; right: 10px; top: 28px; height: 2px; background: var(--line); }
+  .meter .tick { position: absolute; top: 21px; width: 3px; height: 16px; background: var(--phos); border-radius: 2px;
+    box-shadow: 0 0 8px rgba(51,255,153,.8); transform: translateX(-50%); transition: left .06s linear; }
+  .meter .tgt { position: absolute; top: 24px; width: 2px; height: 10px; background: var(--ref); border-radius: 2px; transform: translateX(-50%); transition: left .06s linear; }
+  .meter.fault { border-color: var(--hot); }
+  .meter.fault .lbl { color: var(--hot); }
+  .meter.off { opacity: .25; }
 
   #dock {
     position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
@@ -149,7 +156,7 @@
   h4 { font-size: 11px; letter-spacing: .3em; color: var(--phos); margin: 18px 0 8px; font-weight: 500; }
   .achgrid { display: flex; flex-wrap: wrap; gap: 6px; }
   .ach { font-size: 10.5px; padding: 5px 9px; border-radius: 6px; border: 1px solid var(--line); color: var(--dim); }
-  .ach.got { border-color: var(--phos); color: var(--phos); }
+  .ach.got { border-color: var(--gold); color: var(--gold); }
 
   #toasts {
     position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
@@ -161,6 +168,7 @@
     animation: toastin .3s ease-out; box-shadow: 0 4px 30px rgba(0, 0, 0, .6);
   }
   .toast.hot { border-color: var(--hot); color: var(--hot); }
+  .toast.gold { border-color: var(--gold); color: var(--gold); }
   .toast.fade { opacity: 0; transition: opacity .5s; }
   @keyframes toastin { from { opacity: 0; transform: translateY(-10px); } }
 
@@ -171,7 +179,7 @@
   }
   #draft[hidden] { display: none !important; }
   #draft h2 { font-size: 13px; letter-spacing: .4em; color: var(--phos); font-weight: 500; margin-bottom: 8px; }
-  #draft .sub2 { font-size: 10.5px; letter-spacing: .25em; color: var(--dim); margin-bottom: 22px; }
+  #draft .sub2 { font-size: 10.5px; letter-spacing: .25em; color: var(--dim); margin-bottom: 22px; text-align: center; }
   .cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; max-width: 720px; }
   .card {
     width: min(200px, 28vw); min-width: 150px; min-height: 168px; padding: 16px 13px;
@@ -200,7 +208,7 @@
   #over h1 { font-size: clamp(20px, 5vw, 36px); letter-spacing: .3em; color: var(--phos); font-weight: 600; text-shadow: 0 0 30px rgba(51,255,153,.4); }
   #over h1.lost { color: var(--hot); text-shadow: 0 0 30px rgba(255,92,92,.4); }
   #over p { color: var(--dim); margin: 16px 0; font-size: 12.5px; line-height: 1.9; max-width: 480px; }
-  #over .jsum { color: var(--fg); font-size: 16px; letter-spacing: .15em; margin: 4px 0 10px; }
+  #over .jsum { color: var(--fg); font-size: 18px; letter-spacing: .15em; margin: 4px 0 10px; }
   #poweron {
     margin-top: 14px; font-family: inherit; font-size: 14px; letter-spacing: .25em; padding: 15px 38px;
     background: transparent; border: 1px solid var(--phos); color: var(--phos);
@@ -216,37 +224,22 @@
 <div id="rig">
   <div id="scopewrap">
     <canvas id="scope"></canvas>
-    <div class="chrome" id="c-tl">CH1 <b>∿</b> RUN · <span id="trig" class="lost">WAIT</span></div>
+    <div class="chrome" id="c-tl">CH1 <b>∿</b> · <span id="trig" class="lost">WAIT</span></div>
     <div class="chrome" id="c-tr"><span id="signame">—</span><br><b id="bpmtag"></b></div>
-    <div class="chrome" id="c-bl" >V/DIV <b id="r-amp">—</b> · F <b id="r-freq">—</b></div>
-    <div class="chrome" id="c-br">φ <b id="r-ph">—</b> · ERR <b id="r-err">—</b></div>
-    <div id="joules"><div id="jnum">0</div><div id="jsub">JOULES BANKED</div><div id="combo"></div></div>
-    <div id="stageword"></div>
+    <div id="joules"><div id="jnum">0</div><div id="jsub">JOULES</div><div id="combo"></div></div>
+    <div id="callout"></div>
+    <div id="arrow"></div>
+    <div id="arrowlbl"></div>
     <div id="dock">
       <button class="dockbtn" id="d-rec" data-tab="rec">◉</button>
       <button class="dockbtn" id="d-codex" data-tab="codex">⌁</button>
       <button class="dockbtn" id="d-log" data-tab="log">☰</button>
     </div>
   </div>
-  <div id="knobs">
-    <div class="lane" id="lane-A" data-p="A">
-      <div class="lbl">VOLTS / DIV</div>
-      <div class="groove"></div><div class="tick"></div><div class="ref"></div>
-      <span class="chev l">‹</span><span class="chev r">›</span>
-      <div class="val"></div>
-    </div>
-    <div class="lane" id="lane-F" data-p="F">
-      <div class="lbl">FREQUENCY</div>
-      <div class="groove"></div><div class="tick"></div><div class="ref"></div>
-      <span class="chev l">‹</span><span class="chev r">›</span>
-      <div class="val"></div>
-    </div>
-    <div class="lane" id="lane-P" data-p="P">
-      <div class="lbl">PHASE</div>
-      <div class="groove"></div><div class="tick"></div><div class="ref"></div>
-      <span class="chev l">‹</span><span class="chev r">›</span>
-      <div class="val"></div>
-    </div>
+  <div id="meters">
+    <div class="meter" id="m-A"><div class="lbl">AMPLITUDE</div><div class="groove"></div><div class="tgt"></div><div class="tick"></div></div>
+    <div class="meter" id="m-F"><div class="lbl">FREQUENCY</div><div class="groove"></div><div class="tgt"></div><div class="tick"></div></div>
+    <div class="meter" id="m-P"><div class="lbl">PHASE</div><div class="groove"></div><div class="tgt"></div><div class="tick"></div></div>
   </div>
 </div>
 
@@ -262,56 +255,54 @@
 <script>
 'use strict';
 /* ============================================================
-   PHOSPHOR — night shift on the installation.
-   An oscilloscope roguelike: ride three knobs (amplitude,
-   frequency, phase) to keep your trace locked onto a reference
-   that drifts and glitches on a beat grid. Locked time banks
-   joules and charges integrity; unlocked time drains it. Clear a
-   signal, draft a component, the drift accelerates — blackout is
-   inevitable. Score is joules. Nothing persists but knowledge.
+   PHOSPHOR — night shift at the installation.
+   Snap-fix oscilloscope roguelike. Faults knock ONE parameter of
+   the reference at a time (telegraphed one beat ahead); the whole
+   screen is the knob — drag anywhere and the wave magnetically
+   SNAPS back into lock. Fix speed is rated (INSTANT ×4 / QUICK ×2
+   / CLEAN ×1 / SLOW), streaks multiply, joules rain. Open faults
+   drain integrity; drain grows without bound: blackout always wins.
    Pure DOM-free seeded core (headless harnesses drive this file).
    ============================================================ */
 
 // ---------- balance tables ----------
 const TUNE = {
   bars: 8, beatsPerBar: 4,
-  bpm0: 78, bpmPer: 7, bpmCap: 150,
-  knobsAt: [1, 2, 3],              // stage 1: A · stage 2: +F · stage 3: +P
-  thr: 0.12, wideMult: 1.4,
-  drain0: 0.045, drainPer: 0.030, drainLate: 1.22, drainLateFrom: 5,
-  charge: 0.11,
-  lfoA0: 0.080, lfoAPer: 0.030,
-  lfoF0: 0.070, lfoFPer: 0.027,
-  lfoP0: 0.060, lfoPPer: 0.027,
-  walk0: 0.015, walkPer: 0.011,    // per beat
-  glitchFrom: 3, glitchP0: 0.18, glitchPPer: 0.06, glitchPCap: 0.55,
-  glitchSz0: 0.12, glitchSzPer: 0.030,
-  jr0: 9, jrGrow: 1.5,             // joules/s locked
-  bonus0: 70, bonusGrow: 1.5,
-  comboPer: 0.08, comboCap: 25,
+  bpm0: 80, bpmPer: 6, bpmCap: 150,
+  knobsAt: [1, 2, 3],                 // stage 1: A · 2: +F · 3: +P
+  faultSz0: 0.17, faultSzPer: 0.035, faultSzCap: 0.46,
+  snapZone: 0.05, wideMult: 1.4,
+  minGapBeats: 2,
+  instantBeats: 1, quickBeats: 2, cleanBeats: 4,
+  spdMult: { instant: 4, quick: 2, clean: 1, slow: 0.4 },
+  drain0: 0.06, drainPer: 0.036, drainLate: 1.22, drainLateFrom: 5,
+  charge: 0.12,
+  fix0: 30, jrGrow: 1.5,              // fix reward base · per-stage growth
+  trickle0: 2,                        // joules/s while clean
+  comboPer: 0.12, comboCap: 25,
   integRefill: 0.35,
-  afcRate: 0.35, servoRate: 0.12, pllSnap: 0.06, pllRate: 1.6,
+  servoRate: 0.12, pllZoneMult: 2,
   holdSlow: 0.5, holdDur: 2.0,
   fuseRestore: 0.30,
 };
+function faultsPerBar(s) { return s === 1 ? 0.5 : Math.min(3, 1 + (s - 2) * 0.35); }
 
 const COMPS = [
-  { id: 'afc',   g: '∿', cursed: 0, name: 'AFC LOOP',         desc: 'Frequency error self-corrects 35% per second.' },
-  { id: 'pll',   g: '⌁', cursed: 0, name: 'PLL',              desc: 'Near lock, phase snaps onto the reference.' },
-  { id: 'servo', g: '⟲', cursed: 0, name: 'SERVO ASSIST',     desc: 'All errors self-correct 12% per second.' },
-  { id: 'ocxo',  g: '◫', cursed: 0, name: 'CRYSTAL OVEN',     desc: 'The reference frequency drifts 50% less.' },
-  { id: 'atten', g: '⍖', cursed: 0, name: 'ATTENUATOR',       desc: 'Amplitude drifts 50% less.' },
-  { id: 'dline', g: '⌒', cursed: 0, name: 'DELAY LINE',       desc: 'Phase drifts 50% less.' },
-  { id: 'notch', g: '⋔', cursed: 0, name: 'NOTCH FILTER',     desc: 'Transients hit 50% softer.' },
-  { id: 'wide',  g: '⊞', cursed: 0, name: 'WIDEBAND TRIGGER', desc: 'The lock window is 40% wider.' },
+  { id: 'pll',   g: '⌁', cursed: 0, name: 'PLL',              desc: 'Phase faults snap from twice as far.' },
+  { id: 'servo', g: '⟲', cursed: 0, name: 'SERVO ASSIST',     desc: 'Open faults self-heal 12% per second.' },
+  { id: 'ocxo',  g: '◫', cursed: 0, name: 'CRYSTAL OVEN',     desc: 'Frequency faults land 50% smaller.' },
+  { id: 'atten', g: '⍖', cursed: 0, name: 'ATTENUATOR',       desc: 'Amplitude faults land 50% smaller.' },
+  { id: 'dline', g: '⌒', cursed: 0, name: 'DELAY LINE',       desc: 'Phase faults land 50% smaller.' },
+  { id: 'notch', g: '⋔', cursed: 0, name: 'NOTCH FILTER',     desc: 'Faults arrive at least one beat further apart.' },
+  { id: 'wide',  g: '⊞', cursed: 0, name: 'WIDEBAND TRIGGER', desc: 'The snap zone is 40% wider.' },
   { id: 'cap',   g: '⊐', cursed: 0, name: 'CAPACITOR BANK',   desc: 'Integrity max +50% — and refilled now.' },
   { id: 'mem',   g: '▤', cursed: 0, name: 'PHOSPHOR MEMORY',  desc: 'Integrity drains 25% slower.' },
-  { id: 'hold',  g: '◴', cursed: 0, name: 'TRIGGER HOLD',     desc: 'After a transient, time crawls for 2 seconds.' },
-  { id: 'fuse',  g: '⏚', cursed: 0, name: 'SURGE PROTECTOR',  desc: 'The first blackout each run leaves you at 30% instead.' },
-  { id: 'eye',   g: '◉', cursed: 0, name: 'SPECTRUM EYE',     desc: 'Reference marks appear on the knobs.' },
-  { id: 'oc',    g: '↯', cursed: 1, name: 'OVERCLOCK',        desc: 'Joules ×2 · the drift ×1.5.' },
+  { id: 'hold',  g: '◴', cursed: 0, name: 'TRIGGER HOLD',     desc: 'Time crawls for 2 seconds after a fault lands.' },
+  { id: 'fuse',  g: '⏚', cursed: 0, name: 'SURGE PROTECTOR',  desc: 'The first blackout each shift leaves you at 30%.' },
+  { id: 'eye',   g: '◉', cursed: 0, name: 'SPECTRUM EYE',     desc: 'Telegraphs reveal the fault direction early.' },
+  { id: 'oc',    g: '↯', cursed: 1, name: 'OVERCLOCK',        desc: 'Joules ×2 · faults land 50% bigger.' },
   { id: 'burn',  g: '♨', cursed: 1, name: 'BURN-IN',          desc: 'Charge ×2 · drain ×2.' },
-  { id: 'gain',  g: '▦', cursed: 1, name: 'HOT GAIN STAGE',   desc: 'Joules ×1.5 · the knobs are 60% twitchier.' },
+  { id: 'gain',  g: '▦', cursed: 1, name: 'HOT GAIN STAGE',   desc: 'Joules ×1.5 · the snap zone shrinks 30%.' },
   { id: 'crt',   g: '◬', cursed: 1, name: 'CRACKED CRT',      desc: 'Joules ×1.6 · the beam jitters.' },
 ];
 
@@ -320,20 +311,21 @@ const SIGNAMES = ['FILAMENT WARMER', 'CLOCK TREE', 'PSU RAIL', 'COIL DRIVER', 'A
 function signame(s) { return s <= SIGNAMES.length ? SIGNAMES[s - 1] : 'SECTOR ' + s; }
 
 const MARKS = [
-  { id: 'lock1',   name: 'First Lock' },
-  { id: 'bar1',    name: 'Clean Bar' },
-  { id: 'combo8',  name: 'Eight Bars Tight' },
-  { id: 'stage3',  name: 'Past the Rail' },
-  { id: 'stage5',  name: 'Deep Plant' },
-  { id: 'stage8',  name: 'Night Shift Legend' },
-  { id: 'j1k',     name: 'Kilojoule Run' },
-  { id: 'j10k',    name: 'Megawatt Heart' },
-  { id: 'fuse1',   name: 'Saved by the Fuse' },
-  { id: 'perfect', name: 'Perfect Signal' },
-  { id: 'comps5',  name: 'Tinkerer' },
-  { id: 'codexall',name: 'Full Schematic' },
-  { id: 'death5',  name: 'Five Blackouts' },
-  { id: 'oc1',     name: 'Overclocked Clear' },
+  { id: 'fix1',     name: 'First Fix' },
+  { id: 'instant1', name: 'Reflex' },
+  { id: 'combo10',  name: 'Ten Streak' },
+  { id: 'combo25',  name: 'Untouchable' },
+  { id: 'stage3',   name: 'Past the Rail' },
+  { id: 'stage5',   name: 'Deep Plant' },
+  { id: 'stage8',   name: 'Night Shift Legend' },
+  { id: 'instant10',name: 'Lightning Hands' },
+  { id: 'j1k',      name: 'Kilojoule Run' },
+  { id: 'j10k',     name: 'Megawatt Heart' },
+  { id: 'fuse1',    name: 'Saved by the Fuse' },
+  { id: 'perfect',  name: 'Perfect Signal' },
+  { id: 'comps5',   name: 'Tinkerer' },
+  { id: 'codexall', name: 'Full Schematic' },
+  { id: 'death5',   name: 'Five Blackouts' },
 ];
 
 // ---------- seeded rng ----------
@@ -382,23 +374,24 @@ function fmt(n) {
 
 // ============================================================
 // PURE CORE — no DOM, no clocks, no unseeded randomness.
+// One fault at a time is ACTIVE (oldest open); drag(R, d) moves
+// that parameter; inside the snap zone it locks exactly and the
+// fix is speed-rated against the beat.
 // ============================================================
 
 function newRun(seed) {
   const R = {
-    v: 1, seed: seed >>> 0, rs: seed >>> 0,
+    v: 2, seed: seed >>> 0, rs: seed >>> 0,
     stage: 0, st: 0, beat: -1, bar: -1,
     tgt: { A: 0.5, F: 0.5, P: 0.5 },
-    base: { A: 0.5, F: 0.5, P: 0.5 },
-    lfoPh: { A: 0, F: 0, P: 0 },
-    walk: { A: 0, F: 0, P: 0 },
     you: { A: 0.5, F: 0.5, P: 0.5 },
-    glitchAt: -1, glitchParam: null, warned: false,
-    slowT: 0, lock: false, lockedInBeat: 0,
-    integ: 1, joules: 0, stageJoules: 0, lockTime: 0, stageTime: 0,
+    open: [],                 // [{p, t0, warnBeat}] oldest first; one per param max
+    sched: [],                // [{beat, p}] upcoming faults (warn at beat-1)
+    slowT: 0,
+    integ: 1, joules: 0, lockTime: 0, stageTime: 0,
     combo: 0, bestCombo: 0,
     comps: [], draft: null, over: null, fuseUsed: false,
-    stats: { glitches: 0, locks: 0, perfectStages: 0, drafts: 0 },
+    stats: { fixes: 0, instants: 0, quicks: 0, slows: 0, faults: 0, perfectStages: 0, drafts: 0, stageSlows: 0, stageInstants: 0 },
   };
   startStage(R, 1);
   return R;
@@ -407,91 +400,123 @@ function hasC(R, id) { return R.comps.indexOf(id) >= 0; }
 
 function conf(R) {
   const s = R.stage;
-  const driftScale = (hasC(R, 'oc') ? 1.5 : 1);
   const bpm = Math.min(TUNE.bpmCap, TUNE.bpm0 + TUNE.bpmPer * (s - 1));
   const beatLen = 60 / bpm;
   let drain = (TUNE.drain0 + TUNE.drainPer * (s - 1)) * Math.pow(TUNE.drainLate, Math.max(0, s - TUNE.drainLateFrom));
   if (hasC(R, 'mem')) drain *= 0.75;
   if (hasC(R, 'burn')) drain *= 2;
-  let charge = TUNE.charge * (hasC(R, 'burn') ? 2 : 1);
+  const szBase = Math.min(TUNE.faultSzCap, TUNE.faultSz0 + TUNE.faultSzPer * (s - 1)) * (hasC(R, 'oc') ? 1.5 : 1);
   return {
     bpm, beatLen, dur: TUNE.bars * TUNE.beatsPerBar * beatLen,
     knobs: s >= 3 ? ['A', 'F', 'P'] : s === 2 ? ['A', 'F'] : ['A'],
-    thr: TUNE.thr * (hasC(R, 'wide') ? TUNE.wideMult : 1),
-    drain, charge,
+    snap: TUNE.snapZone * (hasC(R, 'wide') ? TUNE.wideMult : 1) * (hasC(R, 'gain') ? 0.7 : 1),
+    drain, charge: TUNE.charge * (hasC(R, 'burn') ? 2 : 1),
     integCap: hasC(R, 'cap') ? 1.5 : 1,
-    lfo: {
-      A: (TUNE.lfoA0 + TUNE.lfoAPer * (s - 1)) * (hasC(R, 'atten') ? 0.5 : 1) * driftScale,
-      F: (TUNE.lfoF0 + TUNE.lfoFPer * (s - 1)) * (hasC(R, 'ocxo') ? 0.5 : 1) * driftScale,
-      P: (TUNE.lfoP0 + TUNE.lfoPPer * (s - 1)) * (hasC(R, 'dline') ? 0.5 : 1) * driftScale,
+    sz: {
+      A: szBase * (hasC(R, 'atten') ? 0.5 : 1),
+      F: szBase * (hasC(R, 'ocxo') ? 0.5 : 1),
+      P: Math.min(TUNE.faultSzCap, szBase * (hasC(R, 'dline') ? 0.5 : 1)),
     },
-    walkStep: {
-      A: (TUNE.walk0 + TUNE.walkPer * (s - 1)) * (hasC(R, 'atten') ? 0.5 : 1) * driftScale,
-      F: (TUNE.walk0 + TUNE.walkPer * (s - 1)) * (hasC(R, 'ocxo') ? 0.5 : 1) * driftScale,
-      P: (TUNE.walk0 + TUNE.walkPer * (s - 1)) * (hasC(R, 'dline') ? 0.5 : 1) * driftScale,
-    },
-    glitchP: s < TUNE.glitchFrom ? 0 : Math.min(TUNE.glitchPCap, TUNE.glitchP0 + TUNE.glitchPPer * (s - TUNE.glitchFrom)),
-    glitchSz: (TUNE.glitchSz0 + TUNE.glitchSzPer * (s - 1)) * (hasC(R, 'notch') ? 0.5 : 1),
-    jr: TUNE.jr0 * Math.pow(TUNE.jrGrow, s - 1)
+    fpb: faultsPerBar(s),
+    minGap: TUNE.minGapBeats + (hasC(R, 'notch') ? 1 : 0),
+    fix: TUNE.fix0 * Math.pow(TUNE.jrGrow, s - 1)
       * (hasC(R, 'oc') ? 2 : 1) * (hasC(R, 'crt') ? 1.6 : 1) * (hasC(R, 'gain') ? 1.5 : 1),
-    bonus: TUNE.bonus0 * Math.pow(TUNE.bonusGrow, s - 1),
+    trickle: TUNE.trickle0 * Math.pow(TUNE.jrGrow, s - 1)
+      * (hasC(R, 'oc') ? 2 : 1) * (hasC(R, 'crt') ? 1.6 : 1) * (hasC(R, 'gain') ? 1.5 : 1),
   };
 }
 
 function startStage(R, s) {
   R.stage = s; R.st = 0; R.beat = -1; R.bar = -1;
-  R.lockedInBeat = 0; R.stageJoules = 0; R.lockTime = 0; R.stageTime = 0;
-  R.glitchAt = -1; R.glitchParam = null; R.warned = false; R.slowT = 0;
-  for (const p of ['A', 'F', 'P']) {
-    R.base[p] = 0.3 + rng(R) * 0.4;
-    R.lfoPh[p] = rng(R);
-    R.walk[p] = 0;
-  }
+  R.open = []; R.sched = []; R.slowT = 0;
+  R.stats.stageSlows = 0; R.stats.stageInstants = 0;
+  R.lockTime = 0; R.stageTime = 0;
   const c = conf(R);
+  for (const p of ['A', 'F', 'P']) {
+    R.tgt[p] = 0.25 + rng(R) * 0.5;
+    R.you[p] = R.tgt[p];
+  }
   R.integ = s === 1 ? c.integCap : Math.min(c.integCap, R.integ + TUNE.integRefill);
+  // pre-schedule this stage's faults on the beat grid (seeded, gap-respecting)
+  const totalBeats = TUNE.bars * TUNE.beatsPerBar;
+  let lastBeat = -99;
+  for (let bar = 0; bar < TUNE.bars; bar++) {
+    let n = Math.floor(c.fpb) + (rng(R) < (c.fpb % 1) ? 1 : 0);
+    if (s === 1 && bar === 0) n = Math.max(1, n); // guarantee an early teach-fault
+    const beats = [];
+    for (let i = 0; i < n; i++) beats.push(bar * TUNE.beatsPerBar + 1 + Math.floor(rng(R) * (TUNE.beatsPerBar - 1)));
+    beats.sort((a, b) => a - b);
+    for (const b of beats) {
+      if (b - lastBeat < c.minGap || b >= totalBeats - 1) continue;
+      const p = c.knobs[Math.floor(rng(R) * c.knobs.length)];
+      const dir = rng(R) < 0.5 ? -1 : 1;
+      R.sched.push({ beat: b, p, dir });
+      lastBeat = b;
+    }
+  }
 }
 
 function wrapP(x) { x %= 1; return x < 0 ? x + 1 : x; }
 function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+function pdist(a, b) { let d = Math.abs(a - b) % 1; return d > 0.5 ? 1 - d : d; }
+function errParam(R, p) { return p === 'P' ? pdist(R.you.P, R.tgt.P) * 2 : Math.abs(R.you[p] - R.tgt[p]); }
 
-function errOf(R) {
+function activeFault(R) { return R.open.length ? R.open[0] : null; }
+function isLocked(R) { return R.open.length === 0; }
+
+function landFault(R, c, f, ev) {
+  // target jumps; if this param already has an open fault, the jump compounds it
+  const sz = c.sz[f.p] * (0.8 + rng(R) * 0.4);
+  if (f.p === 'P') R.tgt.P = wrapP(R.tgt.P + f.dir * sz);
+  else {
+    let v = R.tgt[f.p] + f.dir * sz;
+    if (v > 0.97 || v < 0.03) v = R.tgt[f.p] - f.dir * sz; // bounce off rails
+    R.tgt[f.p] = clamp01(v);
+  }
+  const already = R.open.find(o => o.p === f.p);
+  if (!already) R.open.push({ p: f.p, t0: R.st });
+  R.stats.faults++;
+  if (hasC(R, 'hold')) R.slowT = TUNE.holdDur;
+  ev.push({ t: 'fault', p: f.p, dir: f.dir });
+}
+
+function rateFix(R, c, age) {
+  const beats = age / c.beatLen;
+  if (beats <= TUNE.instantBeats) return 'instant';
+  if (beats <= TUNE.quickBeats) return 'quick';
+  if (beats <= TUNE.cleanBeats) return 'clean';
+  return 'slow';
+}
+
+// drag the active fault's parameter by d (normalized); snap-assist closes it
+function drag(R, d) {
+  if (R.over || R.draft) return null;
+  const f = activeFault(R);
+  if (!f) return null;
   const c = conf(R);
-  const eA = Math.abs(R.you.A - R.tgt.A);
-  const eF = Math.abs(R.you.F - R.tgt.F);
-  let dP = Math.abs(R.you.P - R.tgt.P) % 1;
-  if (dP > 0.5) dP = 1 - dP;
-  const eP = dP * 2; // normalize: max wrap distance 0.5 → 1
-  const errs = { A: eA, F: c.knobs.indexOf('F') >= 0 ? eF : 0, P: c.knobs.indexOf('P') >= 0 ? eP : 0 };
-  let E = 0, worst = 'A';
-  for (const p of c.knobs) if (errs[p] >= E) { E = errs[p]; worst = p; }
-  return { errs, E, worst, thr: c.thr };
-}
-
-function updateTarget(R, c) {
-  const barLen = c.beatLen * TUNE.beatsPerBar;
-  for (const p of ['A', 'F', 'P']) {
-    const lfo = c.lfo[p] * Math.sin(2 * Math.PI * (R.st / (barLen * 2) + R.lfoPh[p]));
-    const raw = R.base[p] + lfo + R.walk[p];
-    R.tgt[p] = p === 'P' ? wrapP(raw) : clamp01(raw);
+  const p = f.p;
+  if (p === 'P') R.you.P = wrapP(R.you.P + d);
+  else R.you[p] = clamp01(R.you[p] + d);
+  const snapZone = c.snap * (p === 'P' && hasC(R, 'pll') ? TUNE.pllZoneMult : 1);
+  const e = p === 'P' ? pdist(R.you.P, R.tgt.P) : Math.abs(R.you[p] - R.tgt[p]);
+  if (e <= snapZone) {
+    R.you[p] = R.tgt[p];
+    R.open.shift();
+    const age = R.st - f.t0;
+    const tier = rateFix(R, c, age);
+    R.stats.fixes++;
+    if (tier === 'instant') { R.stats.instants++; R.stats.stageInstants++; }
+    if (tier === 'quick') R.stats.quicks++;
+    if (tier === 'slow') { R.stats.slows++; R.stats.stageSlows++; }
+    if (tier === 'instant' || tier === 'quick') {
+      R.combo++; R.bestCombo = Math.max(R.bestCombo, R.combo);
+    } else if (tier === 'slow') R.combo = 0;
+    const mult = TUNE.spdMult[tier] * (1 + TUNE.comboPer * Math.min(TUNE.comboCap, R.combo));
+    const j = c.fix * mult;
+    R.joules += j;
+    return { t: 'fix', p, tier, j, combo: R.combo, mult };
   }
-  // knobs the player doesn't have yet track automatically (teaches one axis at a time)
-  for (const p of ['A', 'F', 'P']) if (c.knobs.indexOf(p) < 0) R.you[p] = R.tgt[p];
-}
-
-function applyAssists(R, c, dt) {
-  const pull = (p, rate) => {
-    if (c.knobs.indexOf(p) < 0) return;
-    let d = R.tgt[p] - R.you[p];
-    if (p === 'P') { d = ((d % 1) + 1.5) % 1 - 0.5; }
-    R.you[p] += d * Math.min(1, rate * dt);
-    if (p === 'P') R.you[p] = wrapP(R.you[p]); else R.you[p] = clamp01(R.you[p]);
-  };
-  if (hasC(R, 'afc')) pull('F', TUNE.afcRate);
-  if (hasC(R, 'servo')) { pull('A', TUNE.servoRate); pull('F', TUNE.servoRate); pull('P', TUNE.servoRate); }
-  if (hasC(R, 'pll')) {
-    let dP = Math.abs(R.you.P - R.tgt.P) % 1; if (dP > 0.5) dP = 1 - dP;
-    if (dP * 2 < TUNE.pllSnap * 2) pull('P', TUNE.pllRate);
-  }
+  return null;
 }
 
 function step(R, dtReal) {
@@ -502,69 +527,36 @@ function step(R, dtReal) {
   if (R.slowT > 0) { R.slowT -= dtReal; dt = dtReal * TUNE.holdSlow; }
   R.st += dt; R.stageTime += dt;
 
-  // beat grid
   const beatIdx = Math.floor(R.st / c.beatLen);
   if (beatIdx !== R.beat) {
-    // close out previous beat: combo bookkeeping
-    if (R.beat >= 0) {
-      const frac = R.lockedInBeat / c.beatLen;
-      if (frac >= 0.85) {
-        R.combo++; R.bestCombo = Math.max(R.bestCombo, R.combo);
-        const jBeat = c.jr * c.beatLen * (1 + TUNE.comboPer * Math.min(TUNE.comboCap, R.combo));
-        ev.push({ t: 'lockbeat', combo: R.combo, j: jBeat });
-      } else if (R.combo > 0) { R.combo = 0; ev.push({ t: 'combobreak' }); }
-    }
-    R.beat = beatIdx; R.lockedInBeat = 0;
-    const beatInBar = beatIdx % TUNE.beatsPerBar;
-    ev.push({ t: 'beat', n: beatIdx, inBar: beatInBar });
-    if (beatInBar === 0) {
-      R.bar++;
-      ev.push({ t: 'bar', n: R.bar });
-      // roll a transient for this bar: warn on beat 1, hit on beat 2
-      if (c.glitchP > 0 && rng(R) < c.glitchP) {
-        R.glitchAt = beatIdx + 2;
-        const ps = c.knobs;
-        R.glitchParam = ps[Math.floor(rng(R) * ps.length)];
-        R.warned = false;
-      }
-    }
-    if (R.glitchAt >= 0 && beatIdx === R.glitchAt - 1 && !R.warned) {
-      R.warned = true;
-      ev.push({ t: 'warn', p: R.glitchParam });
-    }
-    if (R.glitchAt >= 0 && beatIdx === R.glitchAt) {
-      const dir = rng(R) < 0.5 ? -1 : 1;
-      const sz = c.glitchSz * (0.8 + rng(R) * 0.5);
-      R.walk[R.glitchParam] += dir * sz;
-      R.stats.glitches++;
-      ev.push({ t: 'glitch', p: R.glitchParam, sz: dir * sz });
-      R.glitchAt = -1;
-      if (hasC(R, 'hold')) R.slowT = TUNE.holdDur;
-    }
-    // random walk steps land on beats (the drift is rhythmic)
-    for (const p of ['A', 'F', 'P']) {
-      R.walk[p] += (rng(R) - 0.5) * 2 * c.walkStep[p];
-      // walk decays gently toward 0 so targets stay in range
-      R.walk[p] *= 0.985;
+    R.beat = beatIdx;
+    const inBar = beatIdx % TUNE.beatsPerBar;
+    if (inBar === 0) { R.bar++; ev.push({ t: 'bar', n: R.bar }); }
+    ev.push({ t: 'beat', n: beatIdx, inBar });
+    // telegraphs + landings
+    for (const f of R.sched) {
+      if (f.beat - 1 === beatIdx && !f.warned) { f.warned = true; ev.push({ t: 'warn', p: f.p, dir: f.dir }); }
+      if (f.beat === beatIdx && !f.landed) { f.landed = true; landFault(R, c, f, ev); }
     }
   }
 
-  updateTarget(R, c);
-  applyAssists(R, c, dt);
+  // servo: open faults shrink toward target
+  if (hasC(R, 'servo')) {
+    for (const o of R.open) {
+      const p = o.p;
+      let d = R.tgt[p] - R.you[p];
+      if (p === 'P') d = ((d % 1) + 1.5) % 1 - 0.5;
+      R.you[p] += d * Math.min(1, TUNE.servoRate * dt);
+      if (p === 'P') R.you.P = wrapP(R.you.P);
+    }
+  }
 
-  const e = errOf(R);
-  const wasLock = R.lock;
-  R.lock = e.E < c.thr;
-  if (R.lock && !wasLock) { R.stats.locks++; ev.push({ t: 'lock', on: true }); }
-  if (!R.lock && wasLock) ev.push({ t: 'lock', on: false });
-
-  if (R.lock) {
-    R.lockedInBeat += dt; R.lockTime += dt;
-    const jr = c.jr * (1 + TUNE.comboPer * Math.min(TUNE.comboCap, R.combo));
-    R.joules += jr * dt; R.stageJoules += jr * dt;
+  if (isLocked(R)) {
+    R.lockTime += dt;
+    R.joules += c.trickle * (1 + TUNE.comboPer * Math.min(TUNE.comboCap, R.combo)) * dt;
     R.integ = Math.min(c.integCap, R.integ + c.charge * dt);
   } else {
-    R.integ -= c.drain * dt;
+    R.integ -= c.drain * R.open.length * dt;
     if (R.integ <= 0) {
       if (hasC(R, 'fuse') && !R.fuseUsed) {
         R.fuseUsed = true; R.integ = TUNE.fuseRestore * c.integCap;
@@ -578,13 +570,11 @@ function step(R, dtReal) {
     }
   }
 
-  // stage clear
-  if (R.st >= c.dur) {
-    const lockFrac = R.lockTime / R.stageTime;
-    const bonus = c.bonus * R.integ;
+  if (R.st >= c.dur && R.open.length === 0) { // stage ends on a clean board
+    const bonus = c.fix * 4 * R.integ;
     R.joules += bonus;
-    if (lockFrac >= 0.95) R.stats.perfectStages++;
-    ev.push({ t: 'clear', stage: R.stage, bonus, lockFrac, oc: hasC(R, 'oc') });
+    const perfect = R.stats.stageSlows === 0;
+    ev.push({ t: 'clear', stage: R.stage, bonus, perfect });
     R.draft = { offers: draftOffers(R) };
     ev.push({ t: 'draft', offers: R.draft.offers });
   }
@@ -609,15 +599,6 @@ function chooseComp(R, id) {
   return { t: 'next', stage: R.stage };
 }
 
-function nudgeKnob(R, p, d) {
-  if (R.over || R.draft) return;
-  const c = conf(R);
-  if (c.knobs.indexOf(p) < 0) return;
-  const sens = hasC(R, 'gain') ? 1.6 : 1;
-  const v = R.you[p] + d * sens;
-  R.you[p] = p === 'P' ? wrapP(v) : clamp01(v);
-}
-
 // ============================================================
 // DOM LAYER
 // ============================================================
@@ -631,9 +612,9 @@ const jnum = document.getElementById('jnum');
 const comboEl = document.getElementById('combo');
 const integEl = document.getElementById('integ');
 const integfill = document.getElementById('integfill');
-const stageword = document.getElementById('stageword');
-const rAmp = document.getElementById('r-amp'), rFreq = document.getElementById('r-freq'),
-      rPh = document.getElementById('r-ph'), rErr = document.getElementById('r-err');
+const calloutEl = document.getElementById('callout');
+const arrowEl = document.getElementById('arrow');
+const arrowlbl = document.getElementById('arrowlbl');
 const panel = document.getElementById('panel');
 const ptitle = document.getElementById('ptitle');
 const pbody = document.getElementById('pbody');
@@ -651,22 +632,45 @@ function resizeScope() {
 }
 addEventListener('resize', resizeScope);
 
-// ---------- pops (floating numbers) ----------
-let parts = [];
-function pop(x, y, txt, hot) {
-  if (parts.length > (reducedMotion ? 30 : 120)) parts.shift();
-  parts.push({ x, y, vx: (Math.random() - 0.5) * 18, vy: -42 - Math.random() * 26, t: 0, life: 1.1, txt, hot });
+function shake(n) {
+  if (reducedMotion) return;
+  const cls = 'shake' + n;
+  scopewrap.classList.remove('shake1', 'shake2', 'shake3');
+  void scopewrap.offsetWidth;
+  scopewrap.classList.add(cls);
 }
+function callout(txt, kind) {
+  calloutEl.textContent = txt;
+  calloutEl.className = kind || '';
+  void calloutEl.offsetWidth;
+  calloutEl.classList.add('go');
+}
+
+// ---------- pops ----------
+let parts = [];
+function pop(x, y, txt, kind, size) { // kind: ''|'gold'|'hot'
+  if (parts.length > (reducedMotion ? 35 : 160)) parts.shift();
+  parts.push({ x, y, vx: (Math.random() - 0.5) * 30, vy: -55 - Math.random() * 40, t: 0,
+    life: kind === 'gold' ? 1.35 : 1.05, txt, kind: kind || '', size: size || (kind === 'gold' ? 18 : 13) });
+}
+function burst(cx, cy, n, txt, kind) {
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + Math.random() * 0.5;
+    parts.push({ x: cx, y: cy, vx: Math.cos(a) * (110 + Math.random() * 90), vy: Math.sin(a) * (110 + Math.random() * 90) - 30,
+      t: 0, life: 1.0, txt, kind: kind || 'gold', size: 14 });
+  }
+}
+const PCOL = { '': '#33ff99', gold: '#ffd75e', hot: '#ff5c5c' };
 function drawParts(dt) {
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
     p.t += dt;
     if (p.t >= p.life) { parts.splice(i, 1); continue; }
-    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt;
     const k = p.t / p.life;
-    sctx.globalAlpha = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
-    sctx.font = '13px ui-monospace, Menlo, Consolas, monospace';
-    sctx.fillStyle = p.hot ? '#ff5c5c' : '#33ff99';
+    sctx.globalAlpha = k < 0.12 ? k / 0.12 : 1 - (k - 0.12) / 0.88;
+    sctx.font = '700 ' + (p.size * (1 + k * 0.15)) + 'px ui-monospace, Menlo, Consolas, monospace';
+    sctx.fillStyle = PCOL[p.kind] || PCOL[''];
     sctx.textAlign = 'center';
     sctx.fillText(p.txt, p.x, p.y);
   }
@@ -674,7 +678,7 @@ function drawParts(dt) {
 }
 
 // ---------- scope rendering ----------
-let scrollT = 0;
+let scrollT = 0, beatFlash = 0;
 function traceY(v, x01, mid, half) {
   const cyc = 1 + v.F * 5;
   return mid - (0.15 + 0.8 * v.A) * half * Math.sin(2 * Math.PI * (x01 * cyc + v.P) - scrollT * 2.2);
@@ -682,11 +686,9 @@ function traceY(v, x01, mid, half) {
 function drawScope(dt) {
   const W = scope.clientWidth, H = scope.clientHeight;
   scrollT += dt;
-  // phosphor persistence: translucent wipe
   sctx.globalAlpha = 1;
   sctx.fillStyle = 'rgba(2,5,3,0.34)';
   sctx.fillRect(0, 0, W, H);
-  // graticule
   sctx.strokeStyle = 'rgba(51,255,153,0.07)';
   sctx.lineWidth = 1;
   sctx.beginPath();
@@ -701,10 +703,11 @@ function drawScope(dt) {
   if (!R) return;
   const mid = H * 0.52, half = H * 0.36;
   const jitter = hasC(R, 'crt') ? 1.6 : 0;
-  // reference trace (dashed amber)
+  const locked = isLocked(R);
+  // reference (dashed amber; pulses red while a fault is open)
   sctx.setLineDash([6, 7]);
-  sctx.strokeStyle = 'rgba(255,179,71,0.5)';
-  sctx.lineWidth = 1.4;
+  sctx.strokeStyle = locked ? 'rgba(255,179,71,0.45)' : 'rgba(255,92,92,0.65)';
+  sctx.lineWidth = 1.5;
   sctx.beginPath();
   for (let x = 0; x <= W; x += 4) {
     const y = traceY(R.tgt, x / W, mid, half);
@@ -712,12 +715,9 @@ function drawScope(dt) {
   }
   sctx.stroke();
   sctx.setLineDash([]);
-  // your trace (phosphor glow: 3 passes)
-  const lockBright = R.lock ? 1 : 0.62;
-  const passes = [
-    { w: 7, a: 0.08 * lockBright }, { w: 3.2, a: 0.25 * lockBright }, { w: 1.6, a: 0.95 * lockBright },
-  ];
-  for (const ps of passes) {
+  // your trace
+  const glow = locked ? 1 : 0.7;
+  for (const ps of [{ w: 8, a: 0.09 * glow }, { w: 3.4, a: 0.26 * glow }, { w: 1.7, a: 0.95 * glow }]) {
     sctx.strokeStyle = 'rgba(51,255,153,' + ps.a + ')';
     sctx.lineWidth = ps.w;
     sctx.beginPath();
@@ -727,19 +727,17 @@ function drawScope(dt) {
     }
     sctx.stroke();
   }
-  // beat pulse ring on locked beats handled via pops; subtle beat tick on center line
-  const c = conf(R);
-  const beatFrac = (R.st % c.beatLen) / c.beatLen;
-  if (beatFrac < 0.12 && !R.over) {
-    sctx.globalAlpha = (0.12 - beatFrac) / 0.12 * (R.lock ? 0.5 : 0.15);
-    sctx.strokeStyle = R.lock ? '#33ff99' : '#2e5c44';
-    sctx.lineWidth = 2;
+  if (beatFlash > 0) {
+    beatFlash -= dt * 6;
+    sctx.globalAlpha = Math.max(0, beatFlash) * (locked ? 0.45 : 0.2);
+    sctx.strokeStyle = locked ? '#33ff99' : '#ff5c5c';
+    sctx.lineWidth = 2.5;
     sctx.strokeRect(3, 3, W - 6, H - 6);
     sctx.globalAlpha = 1;
   }
 }
 
-// ---------- sound (synth; must fail silent) ----------
+// ---------- sound ----------
 let AC = null, youOsc = null, youGain = null, refOsc = null, refGain = null, audioOn = false;
 function ac() {
   try {
@@ -781,32 +779,39 @@ function stopDrone() {
   } catch (e) {}
   audioOn = false;
 }
-function fHz(v) { return 110 * Math.pow(2, v * 1.585); } // 110..330 Hz
+function fHz(v) { return 110 * Math.pow(2, v * 1.585); }
 function updateDrone() {
   if (!audioOn || !AC) return;
   try {
     const t = AC.currentTime;
-    if (!R || R.over || R.draft) {
+    if (!R || R.over || R.draft || !overEl.hidden) {
       youGain.gain.setTargetAtTime(0, t, 0.1);
       refGain.gain.setTargetAtTime(0, t, 0.1);
       return;
     }
     youOsc.frequency.setTargetAtTime(fHz(R.you.F), t, 0.04);
     refOsc.frequency.setTargetAtTime(fHz(R.tgt.F), t, 0.04);
-    youGain.gain.setTargetAtTime(0.028 * (0.4 + 0.6 * R.you.A), t, 0.08);
-    // reference fades when locked — consonance as reward; beating audible when detuned
-    refGain.gain.setTargetAtTime(R.lock ? 0.004 : 0.016, t, 0.12);
+    youGain.gain.setTargetAtTime(0.02 * (0.4 + 0.6 * R.you.A), t, 0.08);
+    refGain.gain.setTargetAtTime(isLocked(R) ? 0.002 : 0.012, t, 0.1);
   } catch (e) {}
 }
+const ARP = [523.25, 659.25, 783.99, 1046.5, 1318.5];
 function sfx(kind, x) {
   if (!M.sound) return;
   try {
-    if (kind === 'tick') tone(x ? 1320 : 880, 0.03, 'square', x ? 0.022 : 0.014);
-    else if (kind === 'lockbeat') { const h = 220 * (2 + Math.min(6, Math.floor((x || 0) / 4))); tone(h, 0.09, 'sine', 0.035); }
-    else if (kind === 'lockon') { tone(660, 0.07, 'sine', 0.04); tone(990, 0.09, 'sine', 0.035, 0.04); }
-    else if (kind === 'warn') { tone(1200, 0.09, 'sawtooth', 0.03); tone(1500, 0.09, 'sawtooth', 0.03, 0.1); }
-    else if (kind === 'glitch') { tone(140, 0.18, 'sawtooth', 0.06); tone(98, 0.22, 'square', 0.04, 0.04); }
-    else if (kind === 'clear') { tone(440, 0.14, 'sine', 0.05); tone(554, 0.16, 'sine', 0.05, 0.1); tone(659, 0.3, 'sine', 0.05, 0.2); }
+    if (kind === 'tick') tone(x ? 1320 : 880, 0.025, 'square', x ? 0.02 : 0.012);
+    else if (kind === 'fix') { // arpeggio rises with combo
+      const base = Math.min(4, Math.floor((x || 0) / 5));
+      tone(ARP[base], 0.08, 'sine', 0.05);
+      tone(ARP[Math.min(4, base + 1)], 0.1, 'sine', 0.04, 0.05);
+    }
+    else if (kind === 'instant') { tone(784, 0.07, 'sine', 0.055); tone(1046, 0.09, 'sine', 0.05, 0.04); tone(1568, 0.14, 'sine', 0.045, 0.09); }
+    else if (kind === 'slow') tone(196, 0.2, 'sine', 0.035);
+    else if (kind === 'streak') { tone(523, 0.09, 'triangle', 0.05); tone(659, 0.09, 'triangle', 0.05, 0.07); tone(784, 0.09, 'triangle', 0.05, 0.14); tone(1046, 0.22, 'sine', 0.05, 0.21); }
+    else if (kind === 'warn') { tone(1200, 0.08, 'sawtooth', 0.028); tone(1500, 0.08, 'sawtooth', 0.028, 0.09); }
+    else if (kind === 'fault') { tone(150, 0.16, 'sawtooth', 0.055); tone(95, 0.2, 'square', 0.04, 0.03); }
+    else if (kind === 'trickle') tone(660 + (x || 0) * 30, 0.04, 'sine', 0.018);
+    else if (kind === 'clear') { tone(440, 0.14, 'sine', 0.05); tone(554, 0.16, 'sine', 0.05, 0.1); tone(659, 0.2, 'sine', 0.05, 0.2); tone(880, 0.32, 'sine', 0.05, 0.3); }
     else if (kind === 'fuse') { tone(220, 0.3, 'square', 0.05); tone(330, 0.3, 'sine', 0.05, 0.12); }
     else if (kind === 'blackout') { tone(180, 1.2, 'sawtooth', 0.07); tone(60, 1.6, 'sine', 0.09, 0.2); }
     else if (kind === 'draftbell') { tone(523, 0.2, 'triangle', 0.04); tone(784, 0.3, 'sine', 0.04, 0.1); }
@@ -828,18 +833,20 @@ function grantMark(id) {
   const mk = MARKS.find(m => m.id === id);
   if (!mk) return;
   M.marks[id] = true;
-  toast('MARK — ' + mk.name);
+  toast('MARK — ' + mk.name, 'gold');
   sfx('mark');
   saveMeta();
 }
 function checkLiveMarks() {
   if (!R) return;
-  if (R.stats.locks > 0) grantMark('lock1');
-  if (R.combo >= 4) grantMark('bar1');
-  if (R.bestCombo >= 32) grantMark('combo8');
+  if (R.stats.fixes > 0) grantMark('fix1');
+  if (R.stats.instants > 0) grantMark('instant1');
+  if (R.bestCombo >= 10) grantMark('combo10');
+  if (R.bestCombo >= 25) grantMark('combo25');
   if (R.stage >= 3) grantMark('stage3');
   if (R.stage >= 5) grantMark('stage5');
   if (R.stage >= 8) grantMark('stage8');
+  if (R.stats.instants >= 10) grantMark('instant10');
   if (R.joules >= 1000) grantMark('j1k');
   if (M.lifeJoules + R.joules >= 10000) grantMark('j10k');
   if (R.fuseUsed) grantMark('fuse1');
@@ -854,7 +861,8 @@ function startRun() {
   M.runs++; saveMeta(); snapshot();
   overEl.hidden = true; draftEl.hidden = true;
   parts = []; lastJ = '';
-  stagewordShow('SIG 01 — ' + signame(1), 'BPM ' + conf(R).bpm + (M.seenHow ? '' : ' · RIDE THE KNOBS — MATCH THE DASHED WAVE'));
+  callout('SIG 01 — ' + signame(1), 'phos');
+  if (!M.seenHow) toast('A FAULT IS COMING — DRAG ANYWHERE TO PULL THE WAVE BACK');
   startDrone();
   sfx('clear');
 }
@@ -880,7 +888,7 @@ function restoreRun() {
     const raw = localStorage.getItem(RUN_KEY);
     if (!raw) return false;
     const d = JSON.parse(raw);
-    if (!d || d.v !== 1 || d.over) return false;
+    if (!d || d.v !== 2 || d.over) return false;
     R = d;
     return true;
   } catch (e) { return false; }
@@ -894,19 +902,18 @@ function showBench(lost) {
     const L = M.last;
     h += '<h1 class="lost">S I G N A L   L O S T</h1>' +
       '<p>blackout at SIG ' + String(L.stage).padStart(2, '0') + ' — ' + esc(signame(L.stage)) + '</p>' +
-      '<div class="jsum">' + fmt(Math.floor(L.joules)) + ' J BANKED</div>' +
+      '<div class="jsum">' + fmt(Math.floor(L.joules)) + ' J</div>' +
       '<p>' + (L.joules >= M.bestJoules ? 'a new record ⚡<br>' : '') +
       'best ' + fmt(Math.floor(M.bestJoules)) + ' J · deepest SIG ' + String(M.bestStage).padStart(2, '0') +
-      ' · lifetime ' + fmt(Math.floor(M.lifeJoules)) + ' J</p>';
+      ' · streak ' + L.combo + ' · lifetime ' + fmt(Math.floor(M.lifeJoules)) + ' J</p>';
   } else {
     h += '<h1>P H O S P H O R</h1>' +
-      '<p>night shift at the installation. every subsystem sings a reference wave —<br>' +
-      'your job is to make the bright trace match the dashed one and HOLD it.<br><br>' +
-      'three knobs: <b style="color:var(--fg)">amplitude · frequency · phase</b>. drag them. or use ' +
-      '<b style="color:var(--fg)">1/2/3 + arrow keys</b>.<br>' +
-      'locked time banks joules and feeds integrity. unlocked time bleeds it.<br>' +
-      'the reference drifts on the beat. it gets faster. it always wins, eventually.<br><br>' +
-      'tip: listen — when the hum stops wobbling, you are in tune.</p>';
+      '<p>night shift at the installation. the reference wave takes a hit —<br>' +
+      '<b style="color:var(--fg)">drag anywhere</b> to haul your trace back on top of it. ' +
+      'close enough and it <b style="color:var(--fg)">SNAPS</b> into lock.<br><br>' +
+      'fast fixes pay big: <b style="color:var(--gold)">INSTANT ×4</b> · QUICK ×2 · CLEAN ×1.<br>' +
+      'streaks multiply on top. faults are telegraphed one beat ahead — listen.<br>' +
+      'open faults drain integrity (top edge). zero = blackout. it accelerates forever.</p>';
   }
   h += '<button id="poweron">' + (lost ? 'P O W E R   O N' : 'C L O C K   I N') + '</button>';
   overEl.innerHTML = h;
@@ -933,7 +940,8 @@ function showDraft(offers) {
   sfx('draftbell');
   const next = () => {
     draftEl.hidden = true;
-    stagewordShow('SIG ' + String(R.stage).padStart(2, '0') + ' — ' + signame(R.stage), 'BPM ' + conf(R).bpm);
+    callout('SIG ' + String(R.stage).padStart(2, '0') + ' — ' + signame(R.stage), 'phos');
+    bpmPopped = false;
     snapshot(); checkLiveMarks(); renderChrome(true);
   };
   draftEl.querySelectorAll('.card').forEach(b => b.addEventListener('click', () => {
@@ -945,139 +953,150 @@ function showDraft(offers) {
   }));
   document.getElementById('skipdraft').addEventListener('click', () => { chooseComp(R, null); next(); });
 }
-let stagewordTimer = 0;
-function stagewordShow(big, small, hot) {
-  stageword.innerHTML = esc(big) + (small ? '<small>' + esc(small) + '</small>' : '');
-  stageword.classList.toggle('hot', !!hot);
-  stageword.classList.add('on');
-  stagewordTimer = 2.6;
-}
+let bpmPopped = false;
 
 // ---------- event application ----------
+const PNAME = { A: 'AMPLITUDE', F: 'FREQUENCY', P: 'PHASE' };
 function applyEvents(ev) {
   for (const e of ev) {
-    if (e.t === 'beat') sfx('tick', e.inBar === 0);
-    else if (e.t === 'lockbeat') {
-      pop(scope.clientWidth / 2 + (Math.random() - 0.5) * 120, scope.clientHeight * 0.3, '+' + fmt(Math.floor(e.j)) + ' J');
-      sfx('lockbeat', e.combo);
-      jnum.classList.remove('bump'); void jnum.offsetWidth; jnum.classList.add('bump');
-    }
-    else if (e.t === 'lock' && e.on) sfx('lockon');
+    if (e.t === 'beat') { sfx('tick', e.inBar === 0); beatFlash = 1; if (isLocked(R) && e.inBar === 0 && R.stageTime > 0.5) { const c = conf(R); const j = c.trickle * conf(R).beatLen * 4; pop(scope.clientWidth / 2 + (Math.random() - 0.5) * 90, scope.clientHeight * 0.22, '+' + fmt(Math.max(1, Math.floor(j))), '', 12); sfx('trickle', R.combo); } }
     else if (e.t === 'warn') {
-      stagewordShow('⚠ TRANSIENT — ' + (e.p === 'A' ? 'AMPLITUDE' : e.p === 'F' ? 'FREQUENCY' : 'PHASE'), null, true);
       sfx('warn');
+      callout('⚠ ' + PNAME[e.p], 'hot');
     }
-    else if (e.t === 'glitch') {
-      sfx('glitch');
-      if (!reducedMotion) { scopewrap.classList.remove('jolt'); void scopewrap.offsetWidth; scopewrap.classList.add('jolt'); }
+    else if (e.t === 'fault') {
+      sfx('fault');
+      shake(1);
     }
-    else if (e.t === 'fuse') { toast('⏚ SURGE PROTECTOR BLOWS — 30% RESTORED', 'hot'); sfx('fuse'); grantMark('fuse1'); }
+    else if (e.t === 'fix') {
+      const cx = scope.clientWidth / 2, cy = scope.clientHeight * 0.45;
+      if (e.tier === 'instant') {
+        callout('INSTANT ×' + e.mult.toFixed(1), '');
+        shake(3);
+        burst(cx, cy, 14, '+', 'gold');
+        sfx('instant');
+      } else if (e.tier === 'quick') {
+        callout('QUICK ×' + e.mult.toFixed(1), '');
+        shake(2);
+        burst(cx, cy, 7, '+', 'gold');
+        sfx('fix', e.combo);
+      } else if (e.tier === 'clean') {
+        shake(1);
+        sfx('fix', e.combo);
+      } else {
+        callout('SLOW', 'hot');
+        sfx('slow');
+      }
+      pop(cx + (Math.random() - 0.5) * 100, cy - 30, '+' + fmt(Math.floor(e.j)) + ' J', e.tier === 'slow' ? 'hot' : 'gold', e.tier === 'instant' ? 24 : 18);
+      jnum.classList.remove('bump'); void jnum.offsetWidth; jnum.classList.add('bump');
+      if (e.combo > 0 && e.combo % 5 === 0) {
+        callout('STREAK ' + e.combo, '');
+        burst(cx, cy - 60, 10, '✦', 'gold');
+        sfx('streak');
+      }
+      checkLiveMarks();
+    }
+    else if (e.t === 'fuse') { toast('⏚ SURGE PROTECTOR BLOWS — 30% RESTORED', 'hot'); sfx('fuse'); shake(2); grantMark('fuse1'); }
     else if (e.t === 'clear') {
-      pop(scope.clientWidth / 2, scope.clientHeight * 0.4, '+' + fmt(Math.floor(e.bonus)) + ' J BONUS');
+      pop(scope.clientWidth / 2, scope.clientHeight * 0.4, '+' + fmt(Math.floor(e.bonus)) + ' J BONUS', 'gold', 20);
+      callout('SIG ' + String(e.stage).padStart(2, '0') + ' CLEARED', 'phos');
       sfx('clear');
-      if (e.lockFrac >= 0.95 && R.stage >= 2) grantMark('perfect');
-      if (e.oc) grantMark('oc1');
+      shake(2);
+      if (e.perfect && e.stage >= 2) grantMark('perfect');
     }
     else if (e.t === 'draft') showDraft(e.offers);
     else if (e.t === 'blackout') {
       commitRun();
       stopDrone();
       sfx('blackout');
+      shake(3);
       setTimeout(() => showBench(true), 1100);
     }
   }
 }
 
-// ---------- chrome / knobs render ----------
+// ---------- chrome ----------
 let lastJ = '';
 function renderChrome(force) {
   if (!R) return;
   const c = conf(R);
-  const e = errOf(R);
   const jtxt = fmt(Math.floor(R.joules));
   if (jtxt !== lastJ || force) { jnum.textContent = jtxt; lastJ = jtxt; }
-  comboEl.textContent = R.combo > 0 ? '×' + (1 + TUNE.comboPer * Math.min(TUNE.comboCap, R.combo)).toFixed(2) + ' COMBO ' + R.combo : '';
+  const cm = 1 + TUNE.comboPer * Math.min(TUNE.comboCap, R.combo);
+  comboEl.textContent = R.combo > 0 ? '×' + cm.toFixed(2) + ' STREAK ' + R.combo : '';
   comboEl.style.opacity = R.combo > 0 ? 1 : 0;
-  trigEl.textContent = R.lock ? "TRIG'D" : 'WAIT';
-  trigEl.className = R.lock ? 'lock' : 'lost';
+  const locked = isLocked(R);
+  trigEl.textContent = locked ? "TRIG'D" : R.open.length > 1 ? 'FAULT ×' + R.open.length : 'FAULT';
+  trigEl.className = locked ? 'lock' : 'lost';
   signameEl.textContent = 'SIG ' + String(R.stage).padStart(2, '0') + ' · ' + signame(R.stage);
   bpmtag.textContent = c.bpm + ' BPM · BAR ' + Math.min(TUNE.bars, R.bar + 1) + '/' + TUNE.bars;
-  rAmp.textContent = (0.2 + 1.8 * R.you.A).toFixed(2) + 'V';
-  rFreq.textContent = Math.round(fHz(R.you.F)) + 'Hz';
-  rPh.textContent = Math.round(R.you.P * 360) + '°';
-  rErr.textContent = (e.E * 100).toFixed(0) + '%';
   integfill.style.width = (R.integ / c.integCap * 100) + '%';
   integEl.classList.toggle('low', R.integ < 0.25 * c.integCap);
-  // knob lanes
+  // direction arrow for the active fault
+  const f = activeFault(R);
+  if (f && !R.over) {
+    const p = f.p;
+    let d = R.tgt[p] - R.you[p];
+    if (p === 'P') d = ((d % 1) + 1.5) % 1 - 0.5;
+    const up = p === 'A';
+    arrowEl.textContent = up ? (d > 0 ? '▲▲' : '▼▼') : (d > 0 ? '▶▶' : '◀◀');
+    arrowEl.style.opacity = 0.9;
+    arrowlbl.textContent = PNAME[p];
+    arrowlbl.style.opacity = 0.9;
+  } else { arrowEl.style.opacity = 0; arrowlbl.style.opacity = 0; }
+  // meters
   for (const p of ['A', 'F', 'P']) {
-    const lane = document.getElementById('lane-' + p);
+    const m = document.getElementById('m-' + p);
     const on = c.knobs.indexOf(p) >= 0;
-    lane.classList.toggle('off', !on);
-    lane.classList.toggle('eye', on && hasC(R, 'eye'));
-    const W = lane.clientWidth, pad = 12;
-    const tick = lane.querySelector('.tick');
-    tick.style.left = (pad + R.you[p] * (W - 2 * pad)) + 'px';
-    const ref = lane.querySelector('.ref');
-    ref.style.left = (pad + R.tgt[p] * (W - 2 * pad)) + 'px';
-    const chevL = lane.querySelector('.chev.l'), chevR = lane.querySelector('.chev.r');
-    if (on && !R.over) {
-      let d = R.tgt[p] - R.you[p];
-      if (p === 'P') d = ((d % 1) + 1.5) % 1 - 0.5;
-      const err = e.errs[p];
-      const o = Math.min(1, err / (c.thr * 1.6));
-      chevL.style.opacity = d < 0 ? o : 0;
-      chevR.style.opacity = d > 0 ? o : 0;
-      lane.querySelector('.val').textContent =
-        p === 'A' ? (0.2 + 1.8 * R.you[p]).toFixed(2) + ' V' :
-        p === 'F' ? Math.round(fHz(R.you[p])) + ' Hz' : Math.round(R.you[p] * 360) + '°';
-    } else { chevL.style.opacity = 0; chevR.style.opacity = 0; lane.querySelector('.val').textContent = on ? '' : 'OFFLINE'; }
+    m.classList.toggle('off', !on);
+    m.classList.toggle('fault', on && R.open.some(o => o.p === p));
+    const W = m.clientWidth, pad = 10;
+    m.querySelector('.tick').style.left = (pad + R.you[p] * (W - 2 * pad)) + 'px';
+    m.querySelector('.tgt').style.left = (pad + R.tgt[p] * (W - 2 * pad)) + 'px';
   }
 }
 
-// ---------- input: knob lanes (multi-touch, drag anywhere in lane) ----------
-const laneDrags = {}; // pointerId -> {p, lastX}
-function laneDown(p, x, id) {
-  laneDrags[id] = { p, lastX: x };
-  document.getElementById('lane-' + p).classList.add('active');
+// ---------- input: the whole scope is the knob ----------
+let dragId = null, lastX = 0, lastY = 0;
+function inputStart(x, y, id) {
+  if (dragId !== null) return;
+  dragId = id; lastX = x; lastY = y;
   ac(); startDrone();
   if (!M.seenHow) { M.seenHow = true; saveMeta(); }
 }
-function laneMove(id, x) {
-  const d = laneDrags[id];
-  if (!d || !R) return;
-  const lane = document.getElementById('lane-' + d.p);
-  const W = Math.max(60, lane.clientWidth - 24);
-  nudgeKnob(R, d.p, (x - d.lastX) / W);
-  d.lastX = x;
-}
-function laneUp(id) {
-  const d = laneDrags[id];
-  if (d) document.getElementById('lane-' + d.p).classList.remove('active');
-  delete laneDrags[id];
-}
-for (const p of ['A', 'F', 'P']) {
-  const lane = document.getElementById('lane-' + p);
-  lane.addEventListener('pointerdown', e => {
-    lane.setPointerCapture && lane.setPointerCapture(e.pointerId);
-    laneDown(p, e.clientX, e.pointerId);
-  });
-  lane.addEventListener('pointermove', e => laneMove(e.pointerId, e.clientX));
-  lane.addEventListener('pointerup', e => laneUp(e.pointerId));
-  lane.addEventListener('pointercancel', e => laneUp(e.pointerId));
-  // touch fallback only where PointerEvent is missing (avoids double-registration)
-  if (!window.PointerEvent) {
-    lane.addEventListener('touchstart', e => {
-      for (const t of e.changedTouches) laneDown(p, t.clientX, 'T' + t.identifier);
-    }, { passive: true });
-    lane.addEventListener('touchmove', e => {
-      for (const t of e.changedTouches) laneMove('T' + t.identifier, t.clientX);
-    }, { passive: true });
-    lane.addEventListener('touchend', e => { for (const t of e.changedTouches) laneUp('T' + t.identifier); }, { passive: true });
-    lane.addEventListener('touchcancel', e => { for (const t of e.changedTouches) laneUp('T' + t.identifier); }, { passive: true });
+function inputMove(id, x, y) {
+  if (dragId !== id || !R) return;
+  const f = activeFault(R);
+  if (f) {
+    const W = Math.max(200, scope.clientWidth), H = Math.max(200, scope.clientHeight);
+    const d = f.p === 'A' ? -(y - lastY) / (H * 0.5) : (x - lastX) / (W * 0.55);
+    const r = drag(R, d);
+    if (r) applyEvents([r]);
   }
+  lastX = x; lastY = y;
 }
-// keyboard: 1/2/3 select, arrows adjust (shift fine)
-let kSel = 'A';
+function inputEnd(id) { if (dragId === id) dragId = null; }
+scopewrap.addEventListener('pointerdown', e => {
+  if (e.target.closest('#dock') || e.target.closest('#panel')) return;
+  scopewrap.setPointerCapture && scopewrap.setPointerCapture(e.pointerId);
+  inputStart(e.clientX, e.clientY, e.pointerId);
+});
+scopewrap.addEventListener('pointermove', e => inputMove(e.pointerId, e.clientX, e.clientY));
+scopewrap.addEventListener('pointerup', e => inputEnd(e.pointerId));
+scopewrap.addEventListener('pointercancel', e => inputEnd(e.pointerId));
+if (!window.PointerEvent) {
+  scopewrap.addEventListener('touchstart', e => {
+    if (e.target.closest('#dock') || e.target.closest('#panel')) return;
+    const t = e.changedTouches[0];
+    inputStart(t.clientX, t.clientY, 'T' + t.identifier);
+  }, { passive: true });
+  scopewrap.addEventListener('touchmove', e => {
+    const t = e.changedTouches[0];
+    inputMove('T' + t.identifier, t.clientX, t.clientY);
+  }, { passive: true });
+  scopewrap.addEventListener('touchend', e => { inputEnd('T' + e.changedTouches[0].identifier); }, { passive: true });
+}
+scopewrap.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { closePanel(); return; }
   if (!R || R.over) return;
@@ -1087,18 +1106,13 @@ addEventListener('keydown', e => {
     if (i >= 0 && i < cards.length) cards[i].click();
     return;
   }
-  if (e.key === '1') kSel = 'A';
-  else if (e.key === '2') kSel = 'F';
-  else if (e.key === '3') kSel = 'P';
-  else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].indexOf(e.key) >= 0) {
     e.preventDefault();
     ac(); startDrone();
-    nudgeKnob(R, kSel, (e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 0.004 : 0.016));
-  } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-    e.preventDefault();
-    kSel = kSel === 'A' ? (e.key === 'ArrowUp' ? 'P' : 'F') : kSel === 'F' ? (e.key === 'ArrowUp' ? 'A' : 'P') : (e.key === 'ArrowUp' ? 'F' : 'A');
+    const dir = (e.key === 'ArrowRight' || e.key === 'ArrowUp') ? 1 : -1;
+    const r = drag(R, dir * (e.shiftKey ? 0.01 : 0.035));
+    if (r) applyEvents([r]);
   }
-  document.querySelectorAll('.lane').forEach(l => l.classList.toggle('active', l.dataset.p === kSel));
 });
 
 // ---------- panels ----------
@@ -1129,13 +1143,14 @@ function renderPanel() {
       h += '<h4>THIS SHIFT</h4>' +
         '<div class="stat"><span>joules</span><b>' + fmt(Math.floor(R.joules)) + ' J</b></div>' +
         '<div class="stat"><span>signal</span><b>SIG ' + String(R.stage).padStart(2, '0') + '</b></div>' +
-        '<div class="stat"><span>best combo</span><b>' + R.bestCombo + ' beats</b></div>' +
+        '<div class="stat"><span>fixes (instant)</span><b>' + R.stats.fixes + ' (' + R.stats.instants + ')</b></div>' +
+        '<div class="stat"><span>best streak</span><b>' + R.bestCombo + '</b></div>' +
         '<div class="stat"><span>components</span><b>' + R.comps.length + '</b></div>';
     }
     h += '<h4>BESTS</h4>' +
       '<div class="stat"><span>joules (one shift)</span><b>' + fmt(Math.floor(M.bestJoules)) + ' J</b></div>' +
       '<div class="stat"><span>deepest signal</span><b>SIG ' + String(M.bestStage).padStart(2, '0') + '</b></div>' +
-      '<div class="stat"><span>best combo</span><b>' + M.bestCombo + ' beats</b></div>' +
+      '<div class="stat"><span>best streak</span><b>' + M.bestCombo + '</b></div>' +
       '<h4>LIFETIME</h4>' +
       '<div class="stat"><span>joules</span><b>' + fmt(Math.floor(M.lifeJoules)) + ' J</b></div>' +
       '<div class="stat"><span>shifts</span><b>' + M.runs + '</b></div>' +
@@ -1156,12 +1171,12 @@ function renderPanel() {
   } else if (openTab === 'log') {
     ptitle.textContent = 'M A N U A L';
     pbody.innerHTML =
-      '<p class="note">Match the bright trace to the dashed reference: drag the three knob lanes (or keys 1/2/3 + ←/→, shift for fine). ' +
-      'When every error is inside the lock window, the trigger reads TRIG\'D — locked time banks joules and recharges integrity (top edge). ' +
-      'Unlocked time drains it. Integrity at zero is a blackout: shift over.</p>' +
-      '<p class="note">The reference drifts on the beat and throws transients (telegraphed one beat ahead). Each cleared signal offers one component — and raises the BPM, the drift, and the drain. ' +
-      'The chevrons ‹ › point the way; by ear, detune sounds like wobble — when the hum settles, you are locked.</p>' +
-      '<p class="note">Nothing persists but knowledge: marks, the schematic, your records.</p>' +
+      '<p class="note">Faults knock the reference wave — amplitude, frequency or phase — one at a time, telegraphed one beat ahead. ' +
+      'DRAG ANYWHERE (the whole scope is the knob; arrows show the way) to haul your trace back. Near the mark it SNAPS into lock.</p>' +
+      '<p class="note">Fix speed pays: INSTANT (within a beat) ×4 · QUICK ×2 · CLEAN ×1 · SLOW ×0.4 and your streak breaks. ' +
+      'Streak multiplies everything (up to ×4). Open faults drain integrity; clean signal recharges it and trickles joules. ' +
+      'Each cleared signal offers a component and turns the plant up: faster BPM, bigger faults, more of them, harder drain. Blackout is inevitable — the score is how loud you go.</p>' +
+      '<p class="note">Keyboard: arrows fix (shift = fine) · 1/2/3 picks drafts · Esc closes. Nothing persists but knowledge.</p>' +
       (M.last ? '<h4>LAST SHIFT</h4><div class="stat"><span>SIG ' + String(M.last.stage).padStart(2, '0') + '</span><b>' +
         fmt(Math.floor(M.last.joules)) + ' J</b></div>' : '') +
       '<h4>SETTINGS</h4>' +
@@ -1197,17 +1212,16 @@ resizeScope();
 const resumed = restoreRun();
 if (resumed) {
   toast('THE SHIFT RESUMES');
-  stagewordShow('SIG ' + String(R.stage).padStart(2, '0') + ' — ' + signame(R.stage), 'BPM ' + conf(R).bpm);
-  if (R.draft) showDraft(R.draft.offers); // run was saved mid-draft
+  callout('SIG ' + String(R.stage).padStart(2, '0') + ' — ' + signame(R.stage), 'phos');
+  if (R.draft) showDraft(R.draft.offers);
 } else showBench(false);
 
-let lastFrame = performance.now(), acc = 0, panelTimer = 0, resumeGrace = 0;
+let lastFrame = performance.now(), acc = 0, panelTimer = 0, resumeGrace = 0, snapTimer = 0;
 const STEP = 0.02;
-let snapTimer = 0;
 function frame(now) {
   let dt = (now - lastFrame) / 1000;
   lastFrame = now;
-  dt = Math.min(dt, 0.25); // stalls pause the shift; the plant waits
+  dt = Math.min(dt, 0.25); // stalls pause the shift
   if (resumeGrace > 0) { resumeGrace -= dt; dt = 0; }
   if (R && !R.over && !R.draft && overEl.hidden) {
     acc += dt;
@@ -1218,7 +1232,6 @@ function frame(now) {
   drawParts(dt);
   if (R) renderChrome();
   updateDrone();
-  if (stagewordTimer > 0) { stagewordTimer -= dt; if (stagewordTimer <= 0) stageword.classList.remove('on'); }
   panelTimer += dt;
   if (panelTimer > 0.3) {
     panelTimer = 0;
